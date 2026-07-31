@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>چت گروهی: {{ group.name }}</title>
+    
+     <link rel="stylesheet" href="{% static 'css/chat_page.css' %}">
+     <style>
+        .chat-header {
+        flex-shrink: 0;
+        background: #5682a3;
+        color: #fff;
+        padding: 14px 18px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .chat-title {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .chat-subtitle {
+        font-size: 12px;
+        opacity: 0.9;
+        margin-top: 4px;
+    }
+
+    .tg-user { font-size: 12px; font-weight: bold; color: #5682a3; margin-bottom: 3px; }
+    .tg-text { color: #000; line-height: 1.4; word-wrap: break-word; }
+    .tg-time { font-size: 10px; color: #888; text-align: right; margin-top: 2px; }
+     </style>
+
+</head>
+<body>
+
+        <!-- Header -->
+<div class="chat-header">
+    <div class="chat-header-info">
+        <div class="chat-title">{{ group.name }}</div>
+        <div class="chat-subtitle">
+            {{ group.members.count }} عضو
+        </div>
+    </div>
+
+    <div class="chat-header-actions">
+        <a href="{% url 'chat:add_group_member' group.id %}" class="add-member-btn">
+            افزودن عضو
+        </a>
+    </div>
+</div>
+    
+
+    <!-- CHAT -->
+    <div class="chat-box" id="chat-box">
+      {% for message in chat_messages %}
+
+        <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+          <button type="button" class="message-menu-btn" onclick="toggleMenu(this)">⋮</button>
+
+          <div class="message-menu">
+            <button type="button">ویرایش</button>
+            <button type="button">فوروارد</button>
+            {# اطمینان حاصل کنید که message.id همیشه وجود دارد #}
+            {% if message.id %}
+              <a href="{% url 'chat:delete_message' message.id %}"
+                 onclick="return confirm('آیا از حذف این پیام مطمئن هستید؟')"
+                 style="color:red; margin-right:10px; text-decoration:none;">
+                حذف
+              </a>
+            {% else %}
+              <span style="color:gray; margin-right:10px;">حذف (ID ناموجود)</span>
+            {% endif %}
+          </div>
+                        <div class="tg-bubble">
+                        <div class="tg-user">{{ message.sender.username }}</div>
+                        <div class="tg-time">{{ message.created_at|date:"H:i" }}</div>
+                    </div>
+
+          {% if message.content %}
+            <div class="message-text">{{ message.content }}</div>
+          {% endif %}
+
+          <!-- بخش نمایش فایل -->
+          {% if message.file %}
+            {% with file_url=message.file.url file_name=message.file.name|lower %}
+              
+              {% if file_name|slice:"-4:" == ".jpg" or file_name|slice:"-5:" == ".jpeg" or file_name|slice:"-4:" == ".png" or file_name|slice:"-4:" == ".gif" or file_name|slice:"-4:" == ".webp" %}
+                <!-- تصویر -->
+                <div class="message-media" onclick="openFile('{{ file_url }}', 'image', '{{ file_name }}')" style="cursor: pointer;">
+                  <img src="{{ file_url }}" alt="image" class="message-image">
+                </div>
+
+              {% elif file_name|slice:"-4:" == ".mp4" or file_name|slice:"-4:" == ".mov" or file_name|slice:"-4:" == ".avi" or file_name|slice:"-4:" == ".mkv" %}
+                <!-- ویدیو -->
+                <div class="message-media" onclick="openFile('{{ file_url }}', 'video', '{{ file_name }}')" style="cursor: pointer;">
+                  <video class="message-video" controls>
+                    <source src="{{ file_url }}">
+                    مرورگر شما از ویدیو پشتیبانی نمی‌کند.
+                  </video>
+                </div>
+
+              {% else %}
+                <!-- فایل‌های دیگر (PDF, Zip, Doc و ...) -->
+              <div>
+                <a href="{{ message.file.url }}" download style="display: block; margin-top: 5px; color: black; text-decoration: underline;">
+                <div class="file-attachment" onclick="openFile('{{ file_url }}', 'file', '{{ file_name }}')" style="cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 5px;">
+                  <span style="font-size: 24px;">📎</span>
+                  <div>
+                    <div style="font-weight: bold; font-size: 14px; color: var(--tg-text);">{{ file_name }}</div>
+                    <div style="font-size: 12px; color: var(--tg-meta);">برای دانلود کلیک کنید</div>
+                  </div>
+                </div>
+              </a>
+              </div>
+              {% endif %}
+
+            {% endwith %}
+          {% endif %}
+
+
+          <div class="message-info">
+            {{ message.created_at|date:"H:i" }}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  <!-- INPUT -->
+  <div class="input-area">
+    <form method="post" action="{% url 'chat:send_group_message' group.id %}" class="message-form">
+            {% csrf_token %}
+
+
+            <!-- دکمه فایل -->
+            <label for="file-upload" class="icon-btn" title="ارسال فایل">
+                <input type="file" id="file-upload" name="file" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+            </label>
+
+
+<!-- دکمه ایموجی با type="button" -->
+<button type="button" onclick="toggleEmojiPicker()" style="background: none; border: none; font-size: 24px; cursor: pointer;">
+  😊
+</button>
+      <div class="input-wrapper">
+        <!-- اینجا id="message-input" اضافه شد -->
+        <textarea 
+            name="content" 
+            id="message-input" 
+            class="form-control" 
+            placeholder="پیام خود را بنویسید..." 
+            rows="1"
+        ></textarea>
+      </div>
+
+
+      <button type="submit" class="send-btn">
+        <span style="font-size: 18px;">➤</span>
+      </button>
+    </form>
+            <!-- بخش پیش‌نمایش فایل (مخفی تا زمانی که فایلی انتخاب شود) -->
+    <div id="file-preview-container" class="file-preview" style="display: none; margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; border: 1px solid #ddd;">
+        <p style="margin: 0 0 5px 0; font-size: 14px; color: #666;">پیش‌نمایش فایل:</p>
+        <div id="preview-content" style="max-width: 200px;"></div>
+        <button type="button" id="remove-file" style="margin-top: 5px; padding: 5px 10px; background: #ff4d4d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">حذف فایل</button>
+    </div>
+
+    
+<!-- پنجره انتخاب ایموجی (این div باید در صفحه وجود داشته باشد، مثلا پایین صفحه یا کنار) -->
+<div id="emoji-picker" style="
+    display: none; /* پیش‌فرض مخفی */
+    position: absolute;
+    bottom: 60px; /* فاصله از پایین */
+    right: 10px;
+    background: var(--tg-header);
+    border: 1px solid var(--tg-border);
+    border-radius: 12px;
+    padding: 10px;
+    width: 300px;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 100;
+">
+  <!-- لیست ایموجی‌ها -->
+  <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px;">
+    <span onclick="addEmoji('😊')" style="cursor: pointer; font-size: 20px; text-align: center;">😊</span>
+    <span onclick="addEmoji('😂')" style="cursor: pointer; font-size: 20px; text-align: center;">😂</span>
+    <span onclick="addEmoji('❤️')" style="cursor: pointer; font-size: 20px; text-align: center;">❤️</span>
+    <span onclick="addEmoji('👍')" style="cursor: pointer; font-size: 20px; text-align: center;">👍</span>
+    <span onclick="addEmoji('🎉')" style="cursor: pointer; font-size: 20px; text-align: center;">🎉</span>
+    <span onclick="addEmoji('😢')" style="cursor: pointer; font-size: 20px; text-align: center;">😢</span>
+    <span onclick="addEmoji('😡')" style="cursor: pointer; font-size: 20px; text-align: center;">😡</span>
+    <span onclick="addEmoji('🤔')" style="cursor: pointer; font-size: 20px; text-align: center;">🤔</span>
+    <!-- می‌تونی ایموجی‌های بیشتری اضافه کنی -->
+  </div>
+</div>
+<script>
+      // 1. عملکرد دکمه فایل و پیش‌نمایش
+    const fileInput = document.getElementById('file-upload');
+    const previewContainer = document.getElementById('file-preview-container');
+    const previewContent = document.getElementById('preview-content');
+    const removeFileBtn = document.getElementById('remove-file');
+
+    if (fileInput && previewContainer && previewContent && removeFileBtn) {
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const fileType = file.type;
+                const fileName = file.name;
+                
+                previewContent.innerHTML = '';
+                
+                if (fileType.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.maxWidth = '200px';
+                        img.style.borderRadius = '8px';
+                        previewContent.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                } else if (fileType.startsWith('video/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const video = document.createElement('video');
+                        video.src = e.target.result;
+                        video.controls = true;
+                        video.style.maxWidth = '200px';
+                        video.style.borderRadius = '8px';
+                        previewContent.appendChild(video);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewContent.innerHTML = `<span style="font-size: 14px;">فایل: ${fileName}</span>`;
+                }
+                
+                previewContainer.style.display = 'block';
+            }
+        });
+
+        removeFileBtn.addEventListener('click', function() {
+            fileInput.value = '';
+            previewContainer.style.display = 'none';
+            previewContent.innerHTML = '';
+        });
+    }
+
+    // 2. باز و بسته کردن پنجره ایموجی
+    function toggleEmojiPicker() {
+        const picker = document.getElementById('emoji-picker');
+        if (picker) {
+            if (picker.style.display === 'none' || picker.style.display === '') {
+                picker.style.display = 'block';
+            } else {
+                picker.style.display = 'none';
+            }
+        }
+    }
+
+    // 3. اضافه کردن ایموجی به باکس متن (اصلاح شده با آیدی درست)
+    function addEmoji(emoji) {
+        const input = document.getElementById('message-input'); // آیدی درست: message-input
+        
+        if (input) {
+            input.value += emoji;
+            input.focus();
+        } else {
+            console.error('باکس پیام پیدا نشد! مطمئن شوید id="message-input" در HTML وجود دارد.');
+        }
+    }
+
+    // 4. بستن پنجره ایموجی اگر کاربر بیرون از آن کلیک کرد
+    window.onclick = function(event) {
+        const picker = document.getElementById('emoji-picker');
+        const btn = document.querySelector('button[onclick="toggleEmojiPicker()"]');
+        
+        if (picker && btn) {
+            if (event.target != picker && event.target != btn && !picker.contains(event.target)) {
+                picker.style.display = 'none';
+            }
+        }
+    }
+
+    // 5. بزرگ شدن خودکار textarea (اصلاح شده با پیدا کردن المان)
+    const textarea = document.getElementById('message-input');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    }
+
+    // 6. مدیریت منوی سه نقطه (همان کد قبلی)
+    function toggleMenu(btn) {
+        const menu = btn.nextElementSibling;
+        document.querySelectorAll('.message-menu').forEach(m => {
+            if (m !== menu) m.classList.remove('show');
+        });
+        if (menu) menu.classList.toggle('show');
+    }
+
+    document.addEventListener('click', function(e) {
+        const clickedElement = e.target;
+        const isClickInsideMenu = clickedElement.closest('.message-menu');
+        const isClickOnMenuButton = clickedElement.classList.contains('message-menu-btn') || clickedElement.closest('.message-menu-btn');
+
+        if (!isClickOnMenuButton && !isClickInsideMenu) {
+            document.querySelectorAll('.message-menu.show').forEach(menu => {
+                menu.classList.remove('show');
+            });
+        }
+    });
+
+    // 7. اسکریپت باز کردن فایل (نسخه دیباگ شده)
+    function openFile(url, type, filename) {
+        const modal = document.getElementById('file-modal');
+        const container = document.getElementById('modal-media-container');
+        const info = document.getElementById('modal-info');
+        
+        if (!modal) {
+            console.error('Modal element not found!');
+            return;
+        }
+
+        container.innerHTML = '';
+        info.innerHTML = '';
+
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('show'), 10);
+
+        if (type === 'image') {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = filename;
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '70vh';
+            img.style.borderRadius = '8px';
+            img.style.boxShadow = '0 4px 10px rgba(0,0,0,0.3)';
+            container.appendChild(img);
+            
+        } else if (type === 'video') {
+            const video = document.createElement('video');
+            video.src = url;
+            video.controls = true;
+            video.autoplay = true;
+            video.style.maxWidth = '100%';
+            video.style.maxHeight = '70vh';
+            video.style.borderRadius = '8px';
+            video.style.boxShadow = '0 4px 10px rgba(0,0,0,0.3)';
+            container.appendChild(video);
+            
+        } else {
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.style.color = 'var(--tg-btn)';
+            link.style.fontSize = '16px';
+            link.style.textDecoration = 'none';
+            link.style.fontWeight = 'bold';
+            link.style.display = 'flex';
+            link.style.alignItems = 'center';
+            link.style.gap = '8px';
+            link.style.padding = '10px';
+            link.style.background = 'rgba(255,255,255,0.05)';
+            link.style.borderRadius = '8px';
+            link.style.marginTop = '10px';
+            
+            link.innerHTML = `
+                <span style="font-size: 20px;">📎</span>
+                <span>${filename}</span>
+            `;
+            
+            info.appendChild(link);
+        }
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('file-modal');
+        if (modal) {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+            
+            const video = modal.querySelector('video');
+            if (video) {
+                video.pause();
+                video.currentTime = 0;
+            }
+        }
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('file-modal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+
+    // 8. اسکرول خودکار به آخر چت
+    const chatBox = document.getElementById("chat-box");
+    if (chatBox) {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // 9. ارسال فرم
+    const messageForm = document.getElementById('message-form');
+    if (messageForm) {
+        messageForm.addEventListener('submit', function(e) {
+            // منطق ارسال فرم
+        });
+    }
+
+</script>
+
+</body>
+</html>
+

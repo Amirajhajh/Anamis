@@ -1,0 +1,631 @@
+
+/* سکرول */
+    /* اسکرول بار مینیمال و بدون حاشیه */
+    ::-webkit-scrollbar {
+      width: 12px; /* عرض نازک */
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: transparent; /* پس‌زمینه کاملاً شفاف */
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: rgba(253, 253, 253, 0.74); /* رنگ خاکستری خیلی کمرنگ و شفاف */
+      border-radius: 10px; /* گرد کردن کامل نوار */
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3); /* کمی روشن‌تر شدن هنگام هاور */
+    }
+
+
+
+:root {
+  --header-bg: #243447;
+  --sent-bg: #2b5278;
+  --received-bg: #202b36;
+  --text: #e6eef6;
+  --muted: #8ea3b7;
+  --border: #243447;
+  --accent: #2ea6ff;
+  --input-bg: #1f2c3a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden; 
+  background: var(--bg);
+  color: var(--text);
+  font-family: Tahoma, Arial, sans-serif;
+  direction: rtl;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+body {
+    font-family: Tahoma, Arial, sans-serif;
+    background: #0e1621;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    direction: rtl;
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* کانتینر اصلی چت */
+.chat-page {
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* برای قرار دادن لایه بک‌گراند */
+  z-index: 1;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  background-color: var(--chat-bg); /* رنگ پایه برای زمانی که عکس لود نشده */
+}
+.chat-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* آدرس عکس خودت رو اینجا بذار */
+  background-image: url("/static/images/chat-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1; /* پشت همه چیز باشه */
+  opacity: 0.8; /* شفافیت عکس (بین 0 تا 1) */
+}
+
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 64px;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 12px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.user-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.profile-pic,
+.rounded-profile-pic {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: #0f1720;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-left a,
+.header-left button {
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+#chat-box {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    background-image: url("/Anamis/static/images/chat-bg.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+
+    position: relative;
+}
+
+.message {
+  max-width: 75%;
+  padding: 10px 12px;
+  border-radius: 16px;
+  position: relative;
+  line-height: 1.8;
+  font-size: 14px;
+  word-break: break-word;
+  box-shadow: 0 1px 2px rgba(0,0,0,.18);
+}
+
+.sent {
+  align-self: flex-start;
+  background: var(--sent-bg);
+  border-top-right-radius: 6px;
+}
+
+.received {
+  align-self: flex-end;
+  background: var(--received-bg);
+  border-top-left-radius: 6px;
+}
+
+.message-info {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.sender-name {
+  font-weight: 700;
+  color: #9fd3ff;
+}
+
+.input-area {
+    border-radius: 25px; /* میزان گرد شدن رو میتونی تغییر بدی */
+    border: 1px solid #555; /* حاشیه رو هم میتونی تنظیم کنی */
+    padding: 10px 15px; /* فضای داخلی کادر */
+    /* استایل‌های دیگه که ممکنه از قبل داشته باشی */
+    background-color: #2a394a; /* رنگ پس‌زمینه باکس ورودی */
+    color: #fff;
+    width: calc(100% - 30px); /* عرض باکس با احتساب padding */
+    margin:auto; /* فاصله از بالا و پایین و وسط چین کردن */
+    outline: none; /* حذف خط دور موقع فوکوس */
+}
+
+.message-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.input-wrapper {
+  flex: 1;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper input,
+.input-wrapper textarea {
+  width: 100%;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.input-wrapper input::placeholder,
+.input-wrapper textarea::placeholder {
+  color: var(--muted);
+}
+
+.send-btn {
+  border: none;
+  outline: none;
+  background: var(--accent);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.send-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.send-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 600px) {
+  .chat-page {
+    max-width: 100%;
+    border: 0;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+
+  .header {
+    height: 58px;
+    padding: 0 12px;
+  }
+
+  .user-name {
+    font-size: 14px;
+  }
+
+  .profile-pic,
+  .rounded-profile-pic {
+    width: 40px;
+    height: 40px;
+  }
+}
+.icon-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text);
+  padding: 6px;
+  transition: 0.2s;
+}
+
+.icon-btn:hover {
+  transform: scale(1.1);
+}
+
+.file-attachment {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.file-attachment a {
+  color: #9fd3ff;
+  text-decoration: none;
+}
+
+.file-attachment a:hover {
+  text-decoration: underline;
+}
+
+.emoji-picker {
+  display: none;
+  margin-top: 10px;
+  background: #1f2c3a;
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 20px;
+  line-height: 1.8;
+  max-height: 120px;
+  overflow-y: auto;
+  cursor: pointer;
+}
+
+.emoji-picker.show {
+  display: block;
+}
+/* Preview Area Styles */
+.file-preview-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 0;
+  align-items: center;
+}
+
+.preview-item {
+  position: relative;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  padding: 8px;
+  border-radius: 10px;
+  max-width: 150px; /* Adjust as needed */
+  text-align: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  margin-bottom: 5px;
+}
+
+.file-info {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.filename {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px; /* Adjust as needed */
+}
+
+.remove-preview {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Adjustments for message styling to accommodate previews */
+
+
+.message-text {
+  margin-bottom: 8px; /* Space between text and preview */
+}
+
+.message-info {
+  margin-top: 4px; /* Less margin now that preview is in its own area */
+}
+
+/* Mobile adjustments for preview area */
+@media (max-width: 600px) {
+  .preview-item {
+    max-width: 120px;
+  }
+  .filename {
+    max-width: 80px;
+  }
+}
+.message {
+  position: relative;
+}
+
+.message-top {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.message-menu-btn {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+}
+
+.message-menu {
+  position: absolute;
+  top: 6px;
+  left: 40;
+  background: #1f2c3a;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 120px;
+  padding: 6px 0;
+  display: none;
+  z-index: 20;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+
+.message-menu.show {
+  display: block;
+}
+
+.message-menu button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: right;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.message-menu button:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.message-media {
+  margin-top: 8px;
+}
+
+.message-image {
+  max-width: 240px;
+  width: 100%;
+  border-radius: 12px;
+  display: block;
+}
+
+.message-video {
+  max-width: 280px;
+  width: 100%;
+  border-radius: 12px;
+  display: block;
+}
+
+.file-attachment a {
+  color: #8ecaff;
+  text-decoration: none;
+}
+
+.file-attachment a:hover {
+  text-decoration: underline;
+}
+
+    /* استایل پنجره نمایش فایل (Modal) - به‌روزرسانی شده */
+    .file-modal {
+      display: none; /* پیش‌فرض مخفی */
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.85); /* پس‌زمینه سیاه کمی شفاف‌تر */
+      backdrop-filter: blur(8px); /* افکت تاری بیشتر برای تمرکز روی فایل */
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    /* کلاسی که با جاوااسکریپت اضافه میشه تا انیمیشن باز شدن رو داشته باشیم */
+    .file-modal.show {
+      opacity: 1;
+    }
+
+    .modal-content {
+      position: relative;
+      max-width: 90%;
+      max-height: 90%;
+      background: var(--tg-header); /* استفاده از متغیر تم برنامه */
+      border-radius: 16px; /* گوشه‌های گردتر */
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5); /* سایه عمیق‌تر */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .file-modal.show .modal-content {
+      transform: scale(1);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      color: var(--tg-meta); /* رنگ خاکستری ملایم */
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 1001;
+      transition: all 0.2s ease;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .close-btn:hover {
+      color: #ff6b6b; /* قرمز ملایم هنگام هاور */
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    #modal-media-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      max-width: 100%;
+      max-height: 75vh;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    #modal-media-container img, 
+    #modal-media-container video {
+      max-width: 100%;
+      max-height: 75vh;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      object-fit: contain; /* حفظ نسبت تصویر */
+    }
+
+    .modal-info {
+      margin-top: 15px;
+      color: var(--tg-text);
+      font-size: 14px;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* انیمیشن ورود برای محتوا */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-content > * {
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    /* برای موبایل */
+    @media (max-width: 600px) {
+      .modal-content {
+        width: 95%;
+        max-height: 85vh;
+        padding: 15px;
+      }
+      #modal-media-container {
+        max-height: 65vh;
+      }
+      .close-btn {
+        top: 10px;
+        right: 10px;
+      }
+    }
+
+
+

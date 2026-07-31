@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-container">
+    <div class="card-box">
+        <div class="card-header">
+            <h3>افزودن عضو به {{ group.name }}</h3>
+        </div>
+        
+        <form method="post" class="add-member-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username">نام کاربری فرد مورد نظر را وارد کنید:</label>
+                <input type="text" name="username" id="username" class="input-field" placeholder="نام کاربری..." required>
+            </div>
+            
+            <div class="actions">
+                <button type="submit" class="submit-btn">افزودن به گروه</button>
+                <a href="{% url 'chat:chat_group' group.id %}" class="cancel-btn">انصراف</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .page-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #d9e6f2;
+        padding: 20px;
+    }
+
+    .card-box {
+        background: #fff;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+    }
+
+    .card-header h3 {
+        margin-top: 0;
+        color: #5682a3;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+        text-align: right;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #cfdbe6;
+        border-radius: 8px;
+        box-sizing: border-box; /* برای اینکه padding عرض را به هم نریزد */
+        margin-top: 8px;
+    }
+
+    .actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .submit-btn {
+        flex: 2;
+        padding: 12px;
+        background: #5682a3;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .cancel-btn {
+        flex: 1;
+        padding: 12px;
+        background: #f0f2f5;
+        color: #666;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>پنل مدیریت</title>
+</head>
+<body>
+    <h1>پنل مدیریت</h1>
+
+    <h2>گروه‌ها</h2>
+    <a href="{% url 'chat:create_group' %}">ساخت گروه جدید</a>
+<ul>
+    {% for group in groups %}
+        <li>
+            <a href="{% url 'chat:chat_group' chat_id=group.id %}">
+                {{ group.name }}
+            </a>
+        </li>
+    {% empty %}
+        <li>هیچ گروهی یافت نشد.</li>
+    {% endfor %}
+</ul>
+
+</body>
+</html>

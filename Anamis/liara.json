@@ -1,0 +1,9 @@
+        {
+          "build": {
+            "builder": "heroku/python"
+          },
+          "run": {
+            "command": "gunicorn your_project_name.wsgi --bind 0.0.0.0 --log-file -",
+            "web_port": 8000
+          }
+        }

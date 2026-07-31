@@ -1,0 +1,186 @@
+body {
+    margin: 0;
+    padding-top: 70px;
+    font-family: Tahoma, sans-serif;
+    background: #f4f6f8;
+}
+
+/* هدر اصلی */
+.tg-header {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 64px;
+    background: #0088cc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+/* ساختار داخلی */
+.tg-navbar {
+    max-width: 1400px;
+    height: 100%;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+/* بخش وسط */
+.tg-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.tg-logo-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.tg-logo {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+}
+
+/* منوی سمت چپ */
+.tg-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.tg-left a {
+    color: white;
+    text-decoration: none;
+    font-size: 15px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+.tg-left a:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* سمت راست */
+.tg-right {
+    display: flex;
+    align-items: center;
+}
+
+.tg-user-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tg-profile-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: white;
+}
+
+/* آواتار */
+.tg-avatar-wrapper {
+    position: relative;
+    width: 42px;
+    height: 42px;
+}
+
+.tg-profile-pic {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+/* وضعیت آنلاین */
+.tg-online-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 1px;
+    width: 11px;
+    height: 11px;
+    background: #31d158;
+    border: 2px solid #0088cc;
+    border-radius: 50%;
+}
+
+/* نام کاربری */
+.tg-username {
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* خروج */
+.tg-logout-btn {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.14);
+    transition: background 0.2s ease;
+}
+
+.tg-logout-btn:hover {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+/* دکمه ورود / ثبت نام */
+.tg-auth-btn {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    margin-right: 10px;
+    background: rgba(255, 255, 255, 0.14);
+    transition: background 0.2s ease;
+}
+
+.tg-auth-btn:hover {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.tg-register-btn {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+/* ریسپانسیو */
+@media (max-width: 768px) {
+    .tg-left {
+        display: none;
+    }
+
+    .tg-username {
+        display: none;
+    }
+
+    .tg-app-name {
+        display: none;
+    }
+
+    .tg-navbar {
+        padding: 0 14px;
+    }
+
+    .tg-center {
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}

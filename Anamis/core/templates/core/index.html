@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Messenger{% endblock %}
+{% block content %}
+<h1>Welcome to the Messenger!</h1>
+<p>Your chats will appear here.</p>
+{# Link to a specific chat for testing, e.g., chat with ID 1 #}
+<a href="{% url 'chat:chat_detail' chat_id=1 %}
+">Go to Chat 1</a>
+{% endblock %}

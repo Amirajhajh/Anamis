@@ -1,0 +1,257 @@
+
+        /* Basic Styling */
+        body { font-family: sans-serif; margin: 0; }
+        .container { max-width: 960px; margin: 20px auto; padding: 10px; }
+        /* Add more styles for chat layout, sidebar etc. */
+        /* ========== متغیرهای رنگی و فاصله ========== */
+        :root {
+            --bg-page: #f5f7fb;
+            --bg-card: #ffffff;
+            --bg-hover: #f0f2f5;
+            --primary: #4a6cf7;
+            --primary-dark: #3b5de7;
+            --text-main: #1a1a2e;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --border-light: #e5e7eb;
+            --online-green: #22c55e;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 16px;
+            --radius-sm: 12px;
+            --transition: 0.2s ease;
+        }
+
+        /* ========== ریست پایه ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Vazirmatn", "IRANSans", Tahoma, sans-serif;
+            background: var(--bg-page);
+            color: var(--text-main);
+            direction: rtl;
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* ========== کانتینر اصلی ========== */
+        .container,
+        .chat-list-container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+
+        /* ========== هدر ========== */
+        .header h2,
+        .chat-list-container h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-light);
+            margin-bottom: 20px;
+        }
+
+        /* ========== آیتم چت ========== */
+        .chat-item {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow var(--transition), transform var(--transition);
+            cursor: pointer;
+        }
+
+        .chat-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        /* لینک کل آیتم */
+        .chat-item a {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* ========== آواتار ========== */
+        .chat-avatar {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .chat-avatar img {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border-light);
+            background: #e5e7eb;
+        }
+
+        /* نقطه سبز آنلاین */
+        .online-dot {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            background: var(--online-green);
+            border: 2.5px solid var(--bg-card);
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
+        }
+
+        /* ========== جزئیات چت ========== */
+        .chat-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-details h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .chat-details p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin: 0;
+        }
+
+        .chat-details p strong {
+            color: var(--text-main);
+        }
+
+        /* ========== آخرین پیام (نسخه ساده) ========== */
+        .last-message {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            padding-right: 0;
+        }
+
+        /* ========== وضعیت خالی ========== */
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .empty p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .new-chat-link {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: background var(--transition), transform var(--transition);
+            box-shadow: 0 4px 12px rgba(74, 108, 247, 0.3);
+        }
+
+        .new-chat-link:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(74, 108, 247, 0.35);
+        }
+
+        /* ========== لیست داخل ul (در صورت استفاده) ========== */
+        .chat-list-container ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .chat-list-container ul li {
+            margin-bottom: 12px;
+        }
+
+        /* ========== حالت رسپانسیو ========== */
+        @media (max-width: 480px) {
+            .container,
+            .chat-list-container {
+                margin: 20px auto;
+                padding: 0 12px;
+            }
+
+            .chat-item {
+                padding: 12px;
+            }
+
+            .chat-avatar img {
+                width: 10px;
+                height: 10px;
+            }
+
+            .chat-details h3 {
+                font-size: 0.95rem;
+            }
+
+            .chat-details p {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* ========== انیمیشن ظاهر شدن آیتم‌ها ========== */
+        .chat-item {
+            animation: fadeInUp 0.3s ease forwards;
+            opacity: 0;
+        }
+
+        .chat-item:nth-child(1) { animation-delay: 0.05s; }
+        .chat-item:nth-child(2) { animation-delay: 0.10s; }
+        .chat-item:nth-child(3) { animation-delay: 0.15s; }
+        .chat-item:nth-child(4) { animation-delay: 0.20s; }
+        .chat-item:nth-child(5) { animation-delay: 0.25s; }
+        .chat-item:nth-child(6) { animation-delay: 0.30s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+.btn-create-group {
+    background-color: #4CAF50; /* رنگ سبز */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 10px;
+}
+
+.btn-create-group:hover {
+    background-color: #45a049; /* سبز تیره‌تر در حالت هاور */
+}
+

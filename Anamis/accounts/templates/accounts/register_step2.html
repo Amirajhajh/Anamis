@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <title>{% block title %}Sing in{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+
+<style>
+    body {
+        direction: rtl;
+        font-family: Vazirmatn, Tahoma, Arial, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+        background: linear-gradient(135deg, #eef2f7, #d9e2ec);
+    }
+
+    .page-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 520px;
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+        border: 1px solid #e8edf3;
+    }
+
+    .auth-card .card-body {
+        padding: 35px 30px;
+    }
+
+    .auth-title {
+        text-align: center;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 25px;
+    }
+
+    .section-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #2563eb;
+        margin-top: 20px;
+        margin-bottom: 10px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+
+    .form-control {
+        border-radius: 12px;
+        padding: 12px 14px;
+        border: 1px solid #d1d5db;
+        transition: all 0.25s ease;
+        box-shadow: none !important;
+    }
+
+    .form-control:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.12) !important;
+    }
+
+    .form-text {
+        font-size: 0.85rem;
+        color: #6b7280;
+    }
+
+    hr {
+        border-color: #e5e7eb;
+        margin: 22px 0;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px;
+        font-weight: 700;
+        transition: 0.3s ease;
+        width: 100%;
+    }
+
+    .btn-submit:hover {
+        background: linear-gradient(135deg, #1d4ed8, #1e40af);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    }
+
+    .alert {
+        border-radius: 12px;
+        font-size: 0.95rem;
+    }
+
+    .text-center a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .text-center a:hover {
+        text-decoration: underline;
+    }
+
+    .text-muted {
+        color: #6b7280 !important;
+    }
+
+    @media (max-width: 576px) {
+        .auth-card .card-body {
+            padding: 25px 18px;
+        }
+
+        .auth-title {
+            font-size: 1.35rem;
+        }
+    }
+</style>
+
+
+</head>
+<body>
+<div class="page-wrapper">
+    <div class="auth-card">
+        <div class="card-body">
+            <h3 class="auth-title">تأیید و تکمیل ثبت‌نام</h3>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="code" class="form-label">کد تأیید ارسال شده</label>
+                    <input type="text" class="form-control" id="code" name="code" required placeholder="کد ۶ رقمی را وارد کنید">
+                    
+                </div>
+
+                <hr>
+
+                <div class="section-title">🔒 تنظیم رمز عبور</div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">رمز عبور</label>
+                    <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                </div>
+
+                <div class="mb-3">
+                    <label for="confirm_password" class="form-label">تکرار رمز عبور</label>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6">
+                </div>
+
+                <hr>
+
+                <div class="section-title">📧 ثبت ایمیل (ضروری)</div>
+                <p class="text-muted small">
+                    ایمیل شما برای بازیابی رمز عبور و ارتباطات مهم استفاده می‌شود. لطفاً ایمیل صحیح وارد کنید.
+                </p>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">آدرس ایمیل</label>
+                    <input type="email" class="form-control" id="email" name="email" required placeholder="example@gmail.com">
+                </div>
+
+                <button type="submit" class="btn-submit">تایید</button>
+            </form>
+
+            <div class="text-center mt-3">
+                <a href="{% url 'register_step1' %}">بازگشت و تغییر شماره</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>

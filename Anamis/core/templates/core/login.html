@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود</title>
+    <!-- می‌تونی اینجا لینک CSS هم اضافه کنی -->
+</head>
+<body>
+    <h2>ورود به سیستم</h2>
+    <form method="post" action="{% url 'login' %}">  {# 'login' باید با نام URL pattern در core/urls.py مطابقت داشته باشه #}
+        {% csrf_token %} {# توکن CSRF برای امنیت #}
+
+        <div>
+            <label for="username">نام کاربری:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <br>
+        <div>
+            <label for="password">رمز عبور:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <br>
+        <button type="submit">ورود</button>
+    </form>
+
+    {# اگر خطایی در ورود رخ داد، می‌تونی اینجا نمایش بدی #}
+    {% if error_message %}
+        <p style="color: red;">{{ error_message }}</p>
+    {% endif %}
+</body>
+</html>
+

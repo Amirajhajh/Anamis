@@ -1,0 +1,255 @@
+import datetime
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from django.contrib import messages
+from django.db.models import Q, Prefetch
+from django import forms
+
+from .models import Chat, Message
+
+# تعریف مدل کاربر از تنظیمات پروژه
+User = get_user_model()
+
+class MessageForm(forms.ModelForm):
+    """فرم استاندارد برای ارسال پیام و فایل"""
+    class Meta:
+        model = Message
+        fields = ['content', 'file']
+
+
+@login_required
+def chat_list(request):
+    """نمایش لیست تمام گفتگوهای کاربر به همراه آخرین پیام"""
+    user = request.user
+    
+    # بهینه‌سازی کوئری برای جلوگیری از مشکل N+1
+    # ما پیام‌ها را از قبل لود می‌کنیم تا در حلقه for، کوئری جدید به دیتابیس زده نشود
+    recent_messages = Message.objects.order_by('-created_at')
+    
+    chats = Chat.objects.filter(
+        Q(user1=user) | Q(user2=user)
+    ).prefetch_related(
+        Prefetch('message_set', queryset=recent_messages, to_attr='recent_messages_list')
+    ).distinct()
+
+    chat_data = []
+    for chat in chats:
+        # تشخیص کاربر مقابل
+        other_user = chat.user2 if chat.user1 == user else chat.user1
+        
+        # دریافت آخرین پیام از لیستِ لود شده در حافظه
+        last_message = chat.recent_messages_list[0] if chat.recent_messages_list else None
+        
+        # مدیریت ایمن عکس پروفایل
+        profile_pic_url = None
+        if hasattr(other_user, 'profile_picture') and other_user.profile_picture:
+            profile_pic_url = other_user.profile_picture.url
+
+        chat_data.append({
+            'chat': chat,
+            'other_user': other_user,
+            'last_message': last_message,
+            'other_user_profile_pic': profile_pic_url,
+        })
+
+    # مرتب‌سازی چت‌ها بر اساس زمان آخرین پیام (از جدید به قدیم)
+    chat_data.sort(
+        key=lambda x: x['last_message'].created_at if x['last_message'] else datetime.datetime.min, 
+        reverse=True
+    )
+
+    return render(request, 'chat/chat_list.html', {'chat_data': chat_data})
+
+
+@login_required
+def start_chat(request):
+    """ایجاد چت جدید با یک کاربر با استفاده از نام کاربری"""
+    if request.method == 'POST':
+        username_to_chat = request.POST.get('username', '').strip()
+
+        if not username_to_chat:
+            messages.error(request, 'لطفاً نام کاربری را وارد کنید.')
+            return redirect('chat:start_chat')
+
+        try:
+            other_user = get_object_or_404(User, username=username_to_chat)
+
+            if other_user == request.user:
+                messages.error(request, 'شما نمی‌توانید با خودتان گفتگو ایجاد کنید.')
+                return redirect('chat:start_chat')
+
+            # بررسی وجود چت قبلی بین این دو کاربر
+            existing_chat = Chat.objects.filter(
+                (Q(user1=request.user) & Q(user2=other_user)) |
+                (Q(user1=other_user) & Q(user2=request.user))
+            ).first()
+
+            if existing_chat:
+                return redirect('chat:chat_detail', chat_id=existing_chat.id)
+            else:
+                new_chat = Chat.objects.create(user1=request.user, user2=other_user)
+                messages.success(request, f'گفتگو با {other_user.username} آغاز شد.')
+                return redirect('chat:chat_detail', chat_id=new_chat.id)
+
+        except Exception as e:
+            messages.error(request, f'خطایی رخ داد: {str(e)}')
+            return redirect('chat:start_chat')
+
+    return render(request, 'chat/start_chat.html')
+
+
+@login_required
+def chat_detail(request, chat_id):
+    """نمایش تاریخچه پیام‌های یک چت خاص و امکان ارسال پیام جدید"""
+    chat = get_object_or_404(Chat, id=chat_id)
+    
+    # امنیت: بررسی اینکه کاربر حتماً عضو این چت باشد
+    if request.user not in [chat.user1, chat.user2]:
+        messages.error(request, 'شما اجازه دسترسی به این گفتگو را ندارید.')
+        return redirect('chat:chat_list')
+
+    other_user = chat.user2 if chat.user1 == request.user else chat.user1
+    messages_list = chat.messages.all().order_by('created_at')
+
+    if request.method == 'POST':
+        form = MessageForm(request.POST, request.FILES)
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.sender = request.user
+            message.chat = chat
+            message.save()
+            # در صورت استفاده از Channels، اینجا باید پیام را از طریق WebSocket بفرستید
+            # برای فعلاً ریدایرکت ساده می‌کنیم
+            return redirect('chat:chat_detail', chat_id=chat.id)
+        else:
+            messages.error(request, 'خطا در ارسال پیام. لطفاً فرم را بررسی کنید.')
+    else:
+        form = MessageForm()
+        
+    return render(request, 'chat/chat_detail.html', {
+        'chat': chat,
+        'messages': messages_list,
+        'other_user': other_user,
+        'form': form,
+    })
+
+
+@login_required
+def send_message(request, receiver_id):
+    """
+    این تابع برای ارسال پیام مستقیم (Direct Message) است.
+    نکته: پیشنهاد می‌شود از همان منطق chat_detail استفاده کنید تا ساختار یکپارچه بماند.
+    """
+    receiver = get_object_or_404(User, id=receiver_id)
+    
+    if request.method == 'POST':
+        form = MessageForm(request.POST, request.FILES)
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.sender = request.user
+            message.receiver = receiver
+            message.save()
+            messages.success(request, 'پیام با موفقیت ارسال شد.')
+            return redirect('chat:inbox', receiver_id=receiver_id)
+    else:
+        form = MessageForm()
+        
+    return render(request, 'chat/send_message.html', {'form': form, 'receiver': receiver})
+
+
+
+@login_required
+def delete_message(request, message_id):
+    """حذف پیام (فقط توسط فرستنده)"""
+    message = get_object_or_404(Message, id=message_id)
+
+    if message.sender != request.user:
+        messages.error(request, 'شما اجازه حذف این پیام را ندارید.')
+        return redirect('chat:chat_list')
+
+    chat_id = message.chat.id
+    message.delete()
+    messages.success(request, 'پیام با موفقیت حذف شد.')
+
+    return redirect('chat:chat_detail', chat_id=chat_id)
+
+
+@login_required
+def profile_detail(request, user_id):
+    """نمایش پروفایل یک کاربر"""
+    target_user = get_object_or_404(User, id=user_id)
+    return render(request, 'chat/profile_detail.html', {'user': target_user})
+
+
+@login_required
+def profile_detail_current(request):
+    """نمایش پروفایل کاربر جاری"""
+    return render(request, 'chat/profile_detail.html', {'user': request.user})
+
+
+@login_required
+def create_group_view(request):
+    """نمایش فرم ساخت گروه"""
+    return render(request, 'chat/create_group.html')
+
+
+@login_required
+def process_group_creation_view(request):
+    """پردازش ساخت گروه جدید"""
+    if request.method == 'POST':
+        group_name = request.POST.get('group_name')
+        if group_name:
+            new_group = Group.objects.create(name=group_name, owner=request.user)
+            new_group.members.add(request.user)
+            messages.success(request, f'گروه "{group_name}" با موفقیت ساخته شد.')
+            return redirect('chat:chat_detail', chat_id=new_group.id)
+        else:
+            messages.error(request, 'نام گروه نمی‌تواند خالی باشد.')
+            
+    return redirect('chat:create_group')
+    # ویوی جدید برای پردازش پیام
+
+@login_required
+def chat_detail_group(request, chat_id):
+    group = get_object_or_404(Group, id=chat_id, members=request.user)
+    chat_instance, created = Chat.objects.get_or_create(group=group)
+    # دریافت پیام‌ها و مرتب‌سازی
+    messages = chat_instance.messages.all().order_by('created_at')
+    
+    return render(request, 'chat/group_chat_detail.html', {
+        'group': group,
+        'chat_messages': messages,
+    })
+
+@login_required
+def process_group_message(request, chat_id):
+    if request.method == "POST":
+        group = get_object_or_404(Group, id=chat_id, members=request.user)
+        content = request.POST.get('content', '').strip()
+        
+        if content:
+            chat_instance, _ = Chat.objects.get_or_create(group=group)
+            Message.objects.create(
+                chat=chat_instance,
+                sender=request.user,
+                content=content
+            )
+            
+    return redirect('chat:chat_group', chat_id=chat_id)
+
+
+
+
+
+
+# def dashboard_view(request):
+#     """یک ویو نمایشی برای داشبورد (به جای some_success_url)."""
+#     groups = Group.objects.all()
+#     channels = Channel.objects.all()
+#     context = {'groups': groups, 'channels': channels}
+#     return render(request, 'chat/dashboard.html', context)
+# def add_group_member(request, group_id):
+#     # این فقط برای رفع خطای فعلی است
+#     group = get_object_or_404(Group, id=group_id)
+#     return render(request, 'chat/add_member.html', {'group': group})

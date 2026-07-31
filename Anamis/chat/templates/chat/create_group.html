@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ساخت گروه جدید</title>
+</head>
+<body>
+    <h1>ساخت گروه جدید</h1>
+    <form method="post" action="{% url 'chat:process_group_creation' %}">
+        {% csrf_token %}
+        <label for="group_name">نام گروه:</label><br>
+        <input type="text" id="group_name" name="group_name" required><br><br>
+        <button type="submit">ساخت گروه</button>
+        <a href="{% url 'chat:dashboard' %}">انصراف</a>
+    </form>
+</body>
+</html>

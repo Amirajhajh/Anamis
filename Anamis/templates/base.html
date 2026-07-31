@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <title>{% block title %}Anamis{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/header_home.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+
+</head>
+<body>
+<header class="tg-header">
+    <nav class="tg-navbar">
+
+        <!-- سمت چپ -->
+        <div class="tg-left">
+            <a href="{% url 'chat:chat_list' %}">خانه</a>
+        </div>
+
+        <!-- وسط -->
+
+            <div href="/" class="tg-logo-box">
+                <img src="{% static 'images/ANAMIS.png' %}" alt="Logo" class="tg-logo">
+                <span class="tg-app-name">ANAMIS</span>
+            </div>
+
+
+        <!-- سمت راست -->
+        <div class="tg-right">
+            {% if user.is_authenticated %}
+                <div class="tg-user-box">
+                    <a href="{% url 'profile_detail_current' %}" class="tg-profile-link">
+                        <div class="tg-avatar-wrapper">
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" alt="Profile" class="tg-profile-pic">
+                            {% else %}
+                                <img src="{% static 'path/to/default/avatar.png' %}" alt="Default" class="tg-profile-pic">
+                            {% endif %}
+
+                            {% if user.online_status %}
+                                <span class="tg-online-dot"></span>
+                            {% endif %}
+                        </div>
+
+                        <span class="tg-username">{{ user.username }}</span>
+                    </a>
+
+                    <a href="{% url 'login' %}" class="tg-logout-btn">خروج</a>
+                </div>
+            {% else %}
+                <a href="{% url 'login' %}" class="tg-auth-btn">ورود</a>
+                <a href="{% url 'register' %}" class="tg-auth-btn tg-register-btn">ثبت‌نام</a>
+            {% endif %}
+        </div>
+
+    </nav>
+</header>
+<body>
+ {% block content %}
+ 
+ {% endblock %}
+
+</body>
+</html>
+

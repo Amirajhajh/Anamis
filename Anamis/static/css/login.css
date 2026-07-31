@@ -1,0 +1,167 @@
+    /* کانتینر اصلی برای وسط‌چین کردن */
+    .login-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 20px;
+        font-family: 'Tahoma', sans-serif; /* فونت ساده و خوانا */
+    }
+
+    /* کارت اصلی */
+    .login-card {
+        background: #fff;
+        width: 100%;
+        max-width: 420px;
+        padding: 40px;
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .login-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15);
+    }
+
+    /* هدر کارت */
+    .login-header h1 {
+        color: #1e3c72;
+        margin-bottom: 10px;
+        font: bold;
+        font-size: 2rem;
+        font-weight: 800;
+    }
+
+    .login-header p {
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 0.95rem;
+    }
+
+    /* گروه‌های ورودی */
+    .input-group {
+        margin-bottom: 20px;
+        text-align: right;
+        position: relative;
+    }
+
+    .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .input-group label svg {
+        color: #1e3c72;
+    }
+
+    .input-group input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f9f9f9;
+        box-sizing: border-box; /* برای جلوگیری از بیرون زدن پدینگ */
+    }
+
+    .input-group input:focus {
+        border-color: #1e3c72;
+        background: #fff;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(30, 60, 114, 0.1);
+        transform: scale(1.01);
+    }
+
+    .input-group input::placeholder {
+        color: #aaa;
+    }
+
+    /* پیام خطا */
+    .error-message {
+        background: #fff5f5;
+        color: #e53e3e;
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        border: 1px solid #fed7d7;
+        animation: shake 0.5s ease-in-out;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+
+    /* دکمه ورود */
+    .login-btn {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(30, 60, 114, 0.3);
+    }
+
+    .login-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(30, 60, 114, 0.4);
+        background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+    }
+
+    .login-btn:active {
+        transform: translateY(1px);
+    }
+
+    /* فوتر */
+    .login-footer {
+        margin-top: 25px;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .login-footer a {
+        color: #1e3c72;
+        text-decoration: none;
+        font-weight: 700;
+        transition: color 0.2s;
+    }
+
+    .login-footer a:hover {
+        color: #2a5298;
+        text-decoration: underline;
+    }
+
+    /* ریسپانسیو */
+    @media (max-width: 480px) {
+        .login-card {
+            padding: 30px 20px;
+        }
+        
+        .login-header h1 {
+            font-size: 1.8rem;
+        }
+    }

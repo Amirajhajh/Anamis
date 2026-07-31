@@ -1,0 +1,161 @@
+
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit</title>
+</head>
+<body>
+<style>
+  /* تنظیمات کلی صفحه برای وسط‌چین کردن کادر */
+  body {
+    font-family: 'Tahoma', 'Segoe UI', sans-serif; /* فونت ساده و خوانا */
+    background-color: #f0f2f5; /* رنگ پس‌زمینه ملایم */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+  }
+
+  /* استایل کادر اصلی فرم */
+  .profile-edit-form {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 16px; /* گوشه‌های گرد */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* سایه نرم و مدرن */
+    width: 80%;
+    max-width: 500px; /* حداکثر عرض کادر */
+    text-align: center;
+    border: 1px solid #e1e4e8;
+  }
+
+  /* استایل عنوان فرم */
+  .profile-edit-form h2 {
+    color: #2c3e50;
+    margin-bottom: 30px;
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  /* استایل فیلدهای فرم (تولید شده توسط Django) */
+  .profile-edit-form p {
+    margin-bottom: 20px;
+    text-align: right;
+  }
+
+  .profile-edit-form label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .profile-edit-form input[type="text"],
+  .profile-edit-form input[type="email"],
+  .profile-edit-form input[type="password"],
+  .profile-edit-form input[type="file"],
+  .profile-edit-form textarea,
+  .profile-edit-form select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1e4e8;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box; /* جلوگیری از بیرون زدن پدینگ */
+  }
+
+  .profile-edit-form input:focus,
+  .profile-edit-form textarea:focus,
+  .profile-edit-form select:focus {
+    outline: none;
+    border-color: #00bcd4; /* رنگ آبی فیروزه‌ای برند Anamis */
+  }
+
+  /* استایل دکمه‌ها */
+  .profile-edit-form .btn {
+    display: inline-block;
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 5px;
+    border: none;
+  }
+
+  /* دکمه ذخیره (سبز) */
+  .btn-success {
+    background-color: #28a745;
+    color: white;
+  }
+
+  .btn-success:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+  }
+
+  /* دکمه لغو (خاکستری) */
+  .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  .btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(108, 117, 125, 0.3);
+  }
+
+  /* واکنش‌گرا برای موبایل */
+  @media (max-width: 600px) {
+    .profile-edit-form {
+      padding: 25px;
+    }
+    
+    .profile-edit-form .btn {
+      width: 100%; /* دکمه‌ها تمام عرض شوند در موبایل */
+      margin: 10px 0;
+    }
+  }
+
+  .tg-profile-pic {
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+</style>
+
+<!-- کد HTML شما با کلاس‌های اضافه شده -->
+<div class="profile-edit-form">
+    <div>
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" alt="Profile" class="tg-profile-pic">
+                            {% else %}
+                                <img src="{% static 'path/to/default/avatar.png' %}" alt="Default" class="tg-profile-pic">
+                            {% endif %}
+    </div>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn btn-success">ذخیره تغییرات</button>
+            <a href="{% url 'profile_detail_current' %}" class="btn btn-secondary">لغو</a>
+        </div>
+    </form>
+</div>  
+</body>
+</html>

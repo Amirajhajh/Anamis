@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <title>{% block title %}Messenger{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+</head>
+<body>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>ثبت‌نام با شماره موبایل</h2>
+        <p>شماره موبایل خود را وارد کنید تا کد تأیید ارسال شود.</p>
+        
+
+        <form method="post" class="auth-form">
+        {% csrf_token %}
+        
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        <div class="input-group">
+        <label for="phone">شماره تلفن:</label>
+        <input type="text" id="phone" name="phone" placeholder="مثال: 09123456789" value="{{ request.POST.phone }}"> 
+        </div>
+        <button type="submit" class="auth-btn">ارسال</button>
+    </form>
+        
+        <p class="login-link">قبلاً ثبت‌نام کرده‌اید؟ <a href="{% url 'login' %}">وارد شوید</a></p>
+    </div>
+</div>
+
+</body>
+</html>
+
+
+

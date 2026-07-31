@@ -1,0 +1,31 @@
+{% if message.file %}
+                    <div class="file-attachment">
+                        {% load custom_filters %}
+{% if message.file.name|lower|endswith:'.jpg' or message.file.name|lower|endswith:'.jpeg' or message.file.name|lower|endswith:'.png' %}
+                            <!-- اگر عکس بود -->
+                            <a href="{{ message.file.url }}" target="_blank">
+                                <img src="{{ message.file.url }}" alt="تصویر" style="max-width: 200px; border-radius: 10px; margin-top: 5px;">
+                            </a>
+                        {% elif message.file.name|lower|endswith:'.mp4' or message.file.name|lower|endswith:'.webm' %}
+                            <!-- اگر ویدیو بود -->
+                            <video controls style="max-width: 200px; margin-top: 5px;">
+                                <source src="{{ message.file.url }}" type="video/mp4">
+                                مرورگر شما از ویدیو پشتیبانی نمی‌کند.
+                            </video>
+                        {% else %}
+                            <!-- اگر فایل متنی یا دیگه‌ای بود -->
+                            <a href="{{ message.file.url }}" download style="display: block; margin-top: 5px; color: white; text-decoration: underline;">
+                                📄 دانلود فایل: {{ message.file.name|slice:"7:" }}
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                
+
+<script>
+    const chatBox = document.getElementById("chat-box");
+    if (chatBox) {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>

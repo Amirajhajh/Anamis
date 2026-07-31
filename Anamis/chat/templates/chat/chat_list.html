@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}چت‌ها{% endblock %}</title>
+</head>
+<body>
+{% block content %}
+    {# base.html #}
+
+{# استایل‌های CSS برای .user-profile-nav, .nav-profile-pic, .online-dot را باید در فایل CSS اضافه کنید #}
+
+    <div class="container">
+    </div>
+        <div class="container">
+            <div class="chat-item">
+                <p>Serch</p>
+                <a href="{% url 'chat:start_chat' %}" class="new-chat-link">شروع چت جدید</a>
+
+
+    {% if chat_data %}
+        {% for item in chat_data %}
+            <div class="chat-item">
+                <a class="chat-avatar" 
+                href="{% url 'chat:chat_detail' item.chat.id %}">
+                    
+                                <!-- نمایش عکس پروفایل -->
+            {% if item.other_user.profile_picture %}
+                <img src="{{ item.other_user.profile_picture.url }}" alt="{{ item.other_user.username }}" class="profile-pic">
+            {% else %}
+                <!-- اگر عکسی نبود، یک عکس پیش‌فرض نشون بده -->
+                <img src="/media/default_profile.png" alt="Default" class="profile-pic">
+            {% endif %}
+            {{ item.other_user.username }}
+                </a>
+                {% if item.last_message %}
+                    <div class="last-message">
+                        {{ item.last_message.content|truncatechars:50 }}
+                    </div>
+                {% else %}
+                    <div class="last-message">
+                        شروع گفتگو...
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+
+    {% endif %}
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+</head>
+<body>
+   
+</body>
+</html>
+
+
+</div>
+<script>
+    document.getElementById('create-group-btn').addEventListener('click', function() {
+    // اینجا کدی که می‌خواهید با کلیک اجرا شود را بنویسید
+    // مثلاً نمایش فرم ساخت گروه:
+    document.getElementById('group-creation-form').style.display = 'block';
+
+    // یا ارسال درخواست به سرور با AJAX
+    // fetch('/api/create-group/', { method: 'POST', ... })
+});
+
+</script>
+{% endblock %}
+
+

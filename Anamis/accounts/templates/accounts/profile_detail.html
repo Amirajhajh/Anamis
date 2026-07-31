@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<style>
+    /* تنظیمات کلی برای وسط‌چین کردن کادر در صفحه */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* فونت خوانا */
+    background-color: #f0f2f5; /* رنگ پس‌زمینه کلی صفحه */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* ارتفاع کل صفحه نمایش */
+}
+
+/* استایل کادر اصلی پروفایل */
+.profile-container {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 500px; /* حداکثر عرض کادر */
+    padding: 80px;
+    border-radius: 15px; /* گوشه‌های گرد */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* سایه نرم برای عمق دادن */
+    text-align: center; /* وسط‌چین کردن متن‌ها */
+    box-sizing: border-box;
+}
+
+/* استایل بخش هدر پروفایل */
+.profile-header {
+    display: flex;
+    max-width: 500px;
+    flex-direction: column;
+    align-items: center;
+    gap: 60px;
+}
+
+/* استایل عکس پروفایل */
+.profile-picture img {
+    width: 240px;
+    height: 240px;
+    border-radius: 50%; /* دایره‌ای کردن عکس */
+    object-fit: cover; /* جلوگیری از دفرمه شدن عکس */
+    border: 4px solid #e0e0e0;
+    margin-bottom: 10px;
+}
+
+/* استایل اطلاعات متنی */
+.profile-info {
+    width: 100%;
+}
+
+.profile-info h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #333;
+}
+
+.profile-info p {
+    margin: 8px 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.profile-info strong {
+    color: #444;
+}
+
+/* استایل دکمه ویرایش */
+.btn-primary {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+/* ریسپانسیو برای موبایل */
+@media (max-width: 480px) {
+    .profile-container {
+        margin: 20px;
+        padding: 20px;
+    }
+}
+
+</style>
+</HEAD>
+<body>
+
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-picture">
+            {% if profile_user.profile_picture %}
+                <img src="{{ profile_user.profile_picture.url }}" alt="Profile Picture">
+            {% else %}
+                <img src="{% static 'path/to/default/avatar.png' %}" alt="Default Avatar"> {# مسیر عکس آواتار پیش‌فرض را اینجا قرار دهید #}
+            {% endif %}
+        </div>
+        <div class="profile-info">
+            <h1>{{ profile_user.get_full_name|default:profile_user.username }}</h1>
+            {% if profile_user.bio %}
+                <p><strong>Bio:</strong> {{ profile_user.bio }}</p>
+            {% endif %}
+            <p><strong>Username:</strong> @{{ profile_user.username }}</p>
+            {% if profile_user.email %}
+                <p><strong>Email:</strong> {{ profile_user.email }}</p>
+            {% endif %}
+
+            {# وضعیت آنلاین بودن #}
+            <p>
+                Status:
+                {% if profile_user.online_status %}
+                    <span style="color: green;">Online</span>
+                {% else %}
+                    <span style="color: grey;">Offline</span>
+                {% endif %}
+            </p>
+            {# زمان آخرین بازدید #}
+            {% if profile_user.last_seen %}
+                <p>Last seen: {{ profile_user.last_seen|timesince }} ago</p> {# timesince برای نمایش زمان گذشته #}
+            {% endif %}
+
+            {# دکمه ویرایش پروفایل (فقط اگر کاربر خودش باشد) #}
+            {% if request.user == profile_user %}
+                <a href="{% url 'update_profile' %}" class="btn btn-primary">Edit Profile</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {# اینجا می‌توانید اطلاعات بیشتری مثل پست‌ها، دوستان و ... را اضافه کنید #}
+
+</div>
+
+{% endblock %}
