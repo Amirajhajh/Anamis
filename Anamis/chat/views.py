@@ -27,11 +27,16 @@ def chat_list(request):
     # ما پیام‌ها را از قبل لود می‌کنیم تا در حلقه for، کوئری جدید به دیتابیس زده نشود
     recent_messages = Message.objects.order_by('-created_at')
     
+    # کد اصلاح شده در chat/views.py
+
     chats = Chat.objects.filter(
         Q(user1=user) | Q(user2=user)
     ).prefetch_related(
-        Prefetch('message_set', queryset=recent_messages, to_attr='recent_messages_list')
+        # به جای 'message_set' از نامی که در models.py تعریف کردید استفاده کنید
+        # اگر related_name='messages' است، اینجا بنویسید 'messages'
+        Prefetch('messages', queryset=recent_messages, to_attr='recent_messages_list')
     ).distinct()
+
 
     chat_data = []
     for chat in chats:
