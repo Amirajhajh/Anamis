@@ -87,12 +87,25 @@ TEMPLATES = [
 
 # --- DATABASE ---
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+import dj_database_url
+
+# ... سایر تنظیمات ...
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        # اگر متغیر محیطی DATABASE_URL پیدا نشد، از sqlite استفاده کن (برای تست لوکال)
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600
+    )
 }
+
 
 # --- AUTHENTICATION & SECURITY ---
 
