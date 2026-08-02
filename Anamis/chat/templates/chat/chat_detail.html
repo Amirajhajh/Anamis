@@ -381,7 +381,7 @@
 
 const messageForm = document.getElementById('message-form');
 
-
+// fetch('/chat/chat/
 
 const form = document.getElementById("message-form");
 
@@ -400,45 +400,61 @@ form.addEventListener("submit", async function(e){
 
     if(data.success){
 
-        const chatBox = document.getElementById("chat-box");
-
-        chatBox.insertAdjacentHTML(
-    "beforeend",
-    `
-    <div class="message sent">
-
-        <button type="button"
-                class="message-menu-btn"
-                onclick="toggleMenu(this)">
-            ⋮
-        </button>
-
-        <div class="message-menu">
-            <button type="button">ویرایش</button>
-            <button type="button">فوروارد</button>
-
-            <a href="/chat/message/delete/${data.message_id}/"
-               onclick="return confirm('آیا از حذف این پیام مطمئن هستید؟')"
-               style="color:red; margin-right:10px; text-decoration:none;">
-                حذف
-            </a>
-        </div>
-
-        <div class="message-text">
-            ${data.content}
-        </div>
-
-        <div class="message-info">
-            ${data.time}
-        </div>
-
-    </div>
-    `
+const chatSocket = new WebSocket(
+    "ws://" +
+    window.location.host +
+    "/ws/chat/{{ chat.id }}/"
 );
 
-        form.reset();
 
-        chatBox.scrollTop = chatBox.scrollHeight;
+chatSocket.onmessage = function(e){
+
+    const data = JSON.parse(e.data);
+
+
+    const chatBox =
+        document.getElementById("chat-box");
+
+
+    chatBox.insertAdjacentHTML(
+        "beforeend",
+        `
+        <div class="message received">
+
+            <button type="button"
+                    class="message-menu-btn"
+                    onclick="toggleMenu(this)">
+                ⋮
+            </button>
+
+
+            <div class="message-menu">
+                <button>ویرایش</button>
+                <button>فوروارد</button>
+                <button style="color:red">
+                    حذف
+                </button>
+            </div>
+
+
+            <div class="message-text">
+                ${data.message}
+            </div>
+
+
+            <div class="message-info">
+                ${data.time}
+            </div>
+
+        </div>
+        `
+    );
+
+
+    chatBox.scrollTop =
+        chatBox.scrollHeight;
+
+};
     }
 });
 
