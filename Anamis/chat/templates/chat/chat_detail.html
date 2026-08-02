@@ -24,8 +24,6 @@
     </div>
     
   </header>
-  <body>
-    
 
     <!-- CHAT -->
     <div class="chat-box" id="chat-box">
@@ -124,11 +122,9 @@
             rows="1"
         ></textarea>
       </div>
-
-
-      <button type="submit" class="send-btn">
-        <span style="font-size: 18px;">➤</span>
-      </button>
+    <button type="submit" class="send-btn">
+        <span style="font-size:18px;">➤</span>
+    </button>
     </form>
             <!-- بخش پیش‌نمایش فایل (مخفی تا زمانی که فایلی انتخاب شود) -->
     <div id="file-preview-container" class="file-preview" style="display: none; margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; border: 1px solid #ddd;">
@@ -383,13 +379,68 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // 9. ارسال فرم
-    const messageForm = document.getElementById('message-form');
-    if (messageForm) {
-        messageForm.addEventListener('submit', function(e) {
-            // منطق ارسال فرم
-        });
+const messageForm = document.getElementById('message-form');
+
+
+
+const form = document.getElementById("message-form");
+
+form.addEventListener("submit", async function(e){
+
+    e.preventDefault();
+
+    const formData = new FormData(form);
+
+    const response = await fetch(window.location.href,{
+        method:"POST",
+        body:formData
+    });
+
+    const data = await response.json();
+
+    if(data.success){
+
+        const chatBox = document.getElementById("chat-box");
+
+        chatBox.insertAdjacentHTML(
+    "beforeend",
+    `
+    <div class="message sent">
+
+        <button type="button"
+                class="message-menu-btn"
+                onclick="toggleMenu(this)">
+            ⋮
+        </button>
+
+        <div class="message-menu">
+            <button type="button">ویرایش</button>
+            <button type="button">فوروارد</button>
+
+            <a href="/chat/message/delete/${data.message_id}/"
+               onclick="return confirm('آیا از حذف این پیام مطمئن هستید؟')"
+               style="color:red; margin-right:10px; text-decoration:none;">
+                حذف
+            </a>
+        </div>
+
+        <div class="message-text">
+            ${data.content}
+        </div>
+
+        <div class="message-info">
+            ${data.time}
+        </div>
+
+    </div>
+    `
+);
+
+        form.reset();
+
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
+});
 
 </script>
 

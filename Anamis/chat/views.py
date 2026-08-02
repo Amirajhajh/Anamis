@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.db.models import Q, Prefetch
 from django import forms
+from django.http import JsonResponse
 
 from .models import Chat, Message
 
@@ -106,39 +107,46 @@ def start_chat(request):
 
 @login_required
 def chat_detail(request, chat_id):
-    """نمایش تاریخچه پیام‌های یک چت خاص و امکان ارسال پیام جدید"""
+
     chat = get_object_or_404(Chat, id=chat_id)
-    
-    # امنیت: بررسی اینکه کاربر حتماً عضو این چت باشد
+
     if request.user not in [chat.user1, chat.user2]:
-        messages.error(request, 'شما اجازه دسترسی به این گفتگو را ندارید.')
-        return redirect('chat:chat_list')
+        return JsonResponse({"error": "unauthorized"}, status=403)
 
     other_user = chat.user2 if chat.user1 == request.user else chat.user1
     messages_list = chat.messages.all().order_by('created_at')
 
+    form = MessageForm()   # ← این خط را اضافه کن
+
     if request.method == 'POST':
+
         form = MessageForm(request.POST, request.FILES)
+
         if form.is_valid():
+
             message = form.save(commit=False)
             message.sender = request.user
             message.chat = chat
             message.save()
-            # در صورت استفاده از Channels، اینجا باید پیام را از طریق WebSocket بفرستید
-            # برای فعلاً ریدایرکت ساده می‌کنیم
-            return redirect('chat:chat_detail', chat_id=chat.id)
-        else:
-            messages.error(request, 'خطا در ارسال پیام. لطفاً فرم را بررسی کنید.')
-    else:
-        form = MessageForm()
-        
+
+            return JsonResponse({
+                "success": True,
+                "message_id": message.id,
+                "content": message.content,
+                "time": message.created_at.strftime("%H:%M")
+            })
+
+        return JsonResponse({
+            "success": False,
+            "errors": form.errors
+        })
+
     return render(request, 'chat/chat_detail.html', {
         'chat': chat,
         'messages': messages_list,
         'other_user': other_user,
         'form': form,
     })
-
 
 @login_required
 def send_message(request, receiver_id):
