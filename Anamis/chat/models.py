@@ -66,24 +66,54 @@ class ChatMember(models.Model):
 
 
 class Message(models.Model):
+    STATUS_CHOICES = [
+        ('sending', 'Sending'),
+        ('sent', 'Sent'),
+        ('delivered', 'Delivered'),
+        ('seen', 'Seen'),
+    ]
+
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='sent_chat_messages'
     )
-    # اینجا هم اگر نیاز به ارجاع به Chat داری، از رشته استفاده کن
-    chat = models.ForeignKey('Chat', on_delete=models.CASCADE, related_name='messages')
+
+    deleted_for = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="hidden_messages"
+    )
+   
+    chat = models.ForeignKey(
+        'Chat',
+        on_delete=models.CASCADE,
+        related_name='messages'
+    )
+
     content = models.TextField(blank=True, null=True)
-    file = models.FileField(upload_to='chat_files/%Y/%m/%d/', blank=True, null=True)
+
+    file = models.FileField(
+        upload_to='chat_files/%Y/%m/%d/',
+        blank=True,
+        null=True
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='sent'
+    )
+
+    seen_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
 
     class Meta:
         ordering = ['created_at']
-
-    def __str__(self):
-        sender_username = self.sender.get_username() if self.sender else "Unknown"
-        # در اینجا هم اگر ارجاع به chat داری، مطمئن شو که از رشته استفاده نشده باشد چون خودِ مدل ChatMessage است.
-        return f"Message from {sender_username} in {self.chat}"
 
 class Group(models.Model):
     name = models.CharField(max_length=100)
@@ -114,5 +144,3 @@ class Channel(models.Model):
     def __str__(self):
         return self.name
 
-class channels():
-    pass

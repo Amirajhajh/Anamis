@@ -42,6 +42,12 @@ urlpatterns = [
     path('group/<int:chat_id>/', views.chat_detail_group, name='chat_group'),
     # ارسال پیام
     path('group/<int:chat_id>/send/', views.process_group_message, name='send_group_message'),
+
+    path(
+    'delete-for-me/<int:message_id>/',
+    views.delete_for_me,
+    name='delete_for_me'
+    ),
     # path('group/<int:group_id>/add-member/', views.add_group_member, name='add_group_member')
     
 

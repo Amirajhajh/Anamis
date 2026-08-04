@@ -45,16 +45,6 @@ AUTH_USER_MODEL = 'accounts.User'
 ASGI_APPLICATION = 'messenger_project.asgi.application'
 WSGI_APPLICATION = 'messenger_project.wsgi.application'
 
-# MIDDLEWARE = [
-#     'django.middleware.security.SecurityMiddleware',
-#     'django.contrib.sessions.middleware.SessionMiddleware',
-#     'django.middleware.common.CommonMiddleware',
-#     'django.middleware.csrf.CsrfViewMiddleware',
-#     'django.contrib.auth.middleware.AuthenticationMiddleware',
-#     'django.contrib.messages.middleware.MessageMiddleware',
-#     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-# ]
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -122,14 +112,19 @@ LOGOUT_REDIRECT_URL = '/'
 
 # --- CHANNELS / REDIS CONFIG ---
 
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             # Get redis URL from environment variable
+#             "hosts": [(os.getenv('REDIS_HOST', '127.0.0.1'), int(os.getenv('REDIS_PORT', 6379)))],
+#         },
+#     },
+# }
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            # Get redis URL from environment variable
-            "hosts": [(os.getenv('REDIS_HOST', '127.0.0.1'), int(os.getenv('REDIS_PORT', 6379)))],
-        },
-    },
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
 }
 
 # --- INTERNATIONALIZATION ---

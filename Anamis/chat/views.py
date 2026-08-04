@@ -6,6 +6,8 @@ from django.contrib import messages
 from django.db.models import Q, Prefetch
 from django import forms
 from django.http import JsonResponse
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from .models import Chat, Message
 
@@ -104,7 +106,6 @@ def start_chat(request):
 
     return render(request, 'chat/start_chat.html')
 
-
 @login_required
 def chat_detail(request, chat_id):
 
@@ -113,10 +114,16 @@ def chat_detail(request, chat_id):
     if request.user not in [chat.user1, chat.user2]:
         return JsonResponse({"error": "unauthorized"}, status=403)
 
-    other_user = chat.user2 if chat.user1 == request.user else chat.user1
-    messages_list = chat.messages.all().order_by('created_at')
+    other_user = (
+        chat.user2 if chat.user1 == request.user
+        else chat.user1
+    )
 
-    form = MessageForm()   # ← این خط را اضافه کن
+    messages_list = chat.messages.exclude(
+        deleted_for=request.user
+    ).order_by('created_at')
+
+    form = MessageForm()
 
     if request.method == 'POST':
 
@@ -128,6 +135,19 @@ def chat_detail(request, chat_id):
             message.sender = request.user
             message.chat = chat
             message.save()
+
+            channel_layer = get_channel_layer()
+
+            async_to_sync(channel_layer.group_send)(
+                f"chat_{chat.id}",
+                {
+                    "type": "chat_message",
+                    "message_id": message.id,
+                    "message": message.content,
+                    "sender_id": request.user.id,
+                    "time": message.created_at.strftime("%H:%M"),
+                }
+            )
 
             return JsonResponse({
                 "success": True,
@@ -147,6 +167,31 @@ def chat_detail(request, chat_id):
         'other_user': other_user,
         'form': form,
     })
+
+
+@login_required
+def delete_message(request, message_id):
+
+    message = get_object_or_404(Message, id=message_id)
+
+    message.deleted_for.add(request.user)
+
+    return redirect(
+        'chat:chat_detail',
+        chat_id=message.chat.id
+    )
+
+@login_required
+def delete_for_me(request, message_id):
+
+    message = get_object_or_404(Message, id=message_id)
+
+    message.deleted_for.add(request.user)
+
+    return JsonResponse({
+        "success": True
+    })
+
 
 @login_required
 def send_message(request, receiver_id):
@@ -170,22 +215,6 @@ def send_message(request, receiver_id):
         
     return render(request, 'chat/send_message.html', {'form': form, 'receiver': receiver})
 
-
-
-@login_required
-def delete_message(request, message_id):
-    """حذف پیام (فقط توسط فرستنده)"""
-    message = get_object_or_404(Message, id=message_id)
-
-    if message.sender != request.user:
-        messages.error(request, 'شما اجازه حذف این پیام را ندارید.')
-        return redirect('chat:chat_list')
-
-    chat_id = message.chat.id
-    message.delete()
-    messages.success(request, 'پیام با موفقیت حذف شد.')
-
-    return redirect('chat:chat_detail', chat_id=chat_id)
 
 
 @login_required
@@ -250,19 +279,3 @@ def process_group_message(request, chat_id):
             )
             
     return redirect('chat:chat_group', chat_id=chat_id)
-
-
-
-
-
-
-# def dashboard_view(request):
-#     """یک ویو نمایشی برای داشبورد (به جای some_success_url)."""
-#     groups = Group.objects.all()
-#     channels = Channel.objects.all()
-#     context = {'groups': groups, 'channels': channels}
-#     return render(request, 'chat/dashboard.html', context)
-# def add_group_member(request, group_id):
-#     # این فقط برای رفع خطای فعلی است
-#     group = get_object_or_404(Group, id=group_id)
-#     return render(request, 'chat/add_member.html', {'group': group})

@@ -24,16 +24,24 @@
     </div>
     
   </header>
-
+  
     <!-- CHAT -->
     <div class="chat-box" id="chat-box">
       {% for message in messages %}
-        <div class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+        <div
+    id="message-{{ message.id }}"
+    class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
           <button type="button" class="message-menu-btn" onclick="toggleMenu(this)">⋮</button>
 
           <div class="message-menu">
             <button type="button">ویرایش</button>
             <button type="button">فوروارد</button>
+            <button
+            type="button"
+            onclick="deleteForMe({{ message.id }})"
+            style="color:red;">
+             حذف برای من
+            </button>
             {# اطمینان حاصل کنید که message.id همیشه وجود دارد #}
             {% if message.id %}
               <a href="{% url 'chat:delete_message' message.id %}"
@@ -163,7 +171,27 @@
     <!-- می‌تونی ایموجی‌های بیشتری اضافه کنی -->
   </div>
 </div>
+
 <script>
+window.CHAT_ID = "{{ chat.id }}";
+window.CURRENT_USER_ID = "{{ request.user.id }}";
+</script>
+
+<script>
+
+
+const protocol =
+    window.location.protocol === "https:"
+        ? "wss://"
+        : "ws://";
+const chatSocket = new WebSocket(
+    protocol +
+    window.location.host +
+    "/ws/chat/" +
+    window.CHAT_ID +
+    "/"
+);
+
       // 1. عملکرد دکمه فایل و پیش‌نمایش
     const fileInput = document.getElementById('file-upload');
     const previewContainer = document.getElementById('file-preview-container');
@@ -261,6 +289,56 @@
     }
 
     // 6. مدیریت منوی سه نقطه (همان کد قبلی)
+    function getCookie(name) {
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(
+                    cookie.substring(name.length + 1)
+                );
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
+}
+
+const csrftoken = getCookie("csrftoken");
+
+function deleteForMe(messageId) {
+
+    fetch(`/chat/delete-for-me/${messageId}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrftoken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+
+        if(data.success){
+
+            const msg =
+                document.getElementById(
+                    `message-${messageId}`
+                );
+
+            if(msg){
+                msg.remove();
+            }
+        }
+
+    });
+}
+
+
     function toggleMenu(btn) {
         const menu = btn.nextElementSibling;
         document.querySelectorAll('.message-menu').forEach(m => {
@@ -280,6 +358,14 @@
             });
         }
     });
+    fetch(`/chat/delete-for-me/${messageId}/`, {
+    method: "POST",
+    headers: {
+        "X-CSRFToken": csrftoken
+    }
+}).then(() => {
+    document.getElementById(`message-${messageId}`).remove();
+});
 
     // 7. اسکریپت باز کردن فایل (نسخه دیباگ شده)
     function openFile(url, type, filename) {
@@ -378,86 +464,125 @@
     if (chatBox) {
         chatBox.scrollTop = chatBox.scrollHeight;
     }
-
-const messageForm = document.getElementById('message-form');
-
-// fetch('/chat/chat/
-
 const form = document.getElementById("message-form");
 
-form.addEventListener("submit", async function(e){
+console.log("FORM FOUND:", form);
 
-    e.preventDefault();
+if(form){
 
-    const formData = new FormData(form);
+    form.addEventListener("submit", async function(e){
 
-    const response = await fetch(window.location.href,{
-        method:"POST",
-        body:formData
-    });
+        e.preventDefault();
 
-    const data = await response.json();
+        console.log("SUBMIT AJAX");
 
-    if(data.success){
+        const formData = new FormData(form);
 
-const chatSocket = new WebSocket(
-    "ws://" +
-    window.location.host +
-    "/ws/chat/{{ chat.id }}/"
+        const response = await fetch(window.location.href,{
+            method:"POST",
+            body:formData
+        });
+
+        const data = await response.json();
+
+        console.log("SERVER RESPONSE:", data);
+
+
+        if(data.success){
+
+            const chatBox = document.getElementById("chat-box");
+
+chatBox.insertAdjacentHTML(
+    "beforeend",
+    `
+    <div class="message sent">
+
+        <button type="button"
+                class="message-menu-btn"
+                onclick="toggleMenu(this)">
+            ⋮
+        </button>
+
+        <div class="message-menu">
+            <button type="button">ویرایش</button>
+            <button type="button">فوروارد</button>
+
+            <a href="/chat/delete/${data.message_id}/"
+               style="color:red;text-decoration:none;">
+                حذف
+            </a>
+        </div>
+
+        <div class="message-text">
+            ${data.content}
+        </div>
+
+        <div class="message-info">
+            ${data.time}
+        </div>
+
+    </div>
+    `
 );
 
 
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            form.reset();
+        }
+
+    });
+
+}
+
 chatSocket.onmessage = function(e){
+
+    console.log("MESSAGE RECEIVED:", e.data);
 
     const data = JSON.parse(e.data);
 
-
-    const chatBox =
-        document.getElementById("chat-box");
-
-
-    chatBox.insertAdjacentHTML(
-        "beforeend",
-        `
-        <div class="message received">
-
-            <button type="button"
-                    class="message-menu-btn"
-                    onclick="toggleMenu(this)">
-                ⋮
-            </button>
-
-
-            <div class="message-menu">
-                <button>ویرایش</button>
-                <button>فوروارد</button>
-                <button style="color:red">
-                    حذف
-                </button>
-            </div>
-
-
-            <div class="message-text">
-                ${data.message}
-            </div>
-
-
-            <div class="message-info">
-                ${data.time}
-            </div>
-
-        </div>
-        `
-    );
-
-
-    chatBox.scrollTop =
-        chatBox.scrollHeight;
-
-};
+    // پیام خودم دوباره نمایش داده نشود
+    if(data.sender_id == window.CURRENT_USER_ID){
+        return;
     }
-});
 
+    const chatBox = document.getElementById("chat-box");
+
+chatBox.insertAdjacentHTML(
+    "beforeend",
+    `
+    <div class="message sent">
+
+        <button type="button"
+                class="message-menu-btn"
+                onclick="toggleMenu(this)">
+            ⋮
+        </button>
+
+        <div class="message-menu">
+            <button type="button">ویرایش</button>
+            <button type="button">فوروارد</button>
+
+            <a href="/chat/delete/${data.message_id}/"
+               style="color:red;text-decoration:none;">
+                حذف
+            </a>
+        </div>
+
+        <div class="message-text">
+            ${data.content}
+        </div>
+
+        <div class="message-info">
+            ${data.time}
+        </div>
+
+    </div>
+    `
+);
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
 </script>
 
 </body>
