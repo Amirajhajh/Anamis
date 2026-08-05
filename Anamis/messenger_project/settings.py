@@ -12,6 +12,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key-change-me')
 # DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 # ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# CSRF Protection for specific domains
+# CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://localhost:8080').split(',')
 
 # --- SECURITY SETTINGS ---
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key-change-me')
@@ -27,9 +29,6 @@ ALLOWED_HOSTS = [host.strip() for host in raw_allowed_hosts.split(',') if host.s
 raw_csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://localhost:8080')
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_csrf_origins.split(',') if origin.strip()]
 
-
-# CSRF Protection for specific domains
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://localhost:8080').split(',')
 
 # --- APPLICATION DEFINITION ---
 
