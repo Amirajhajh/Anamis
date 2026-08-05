@@ -184,13 +184,7 @@ const protocol =
     window.location.protocol === "https:"
         ? "wss://"
         : "ws://";
-const chatSocket = new WebSocket(
-    protocol +
-    window.location.host +
-    "/ws/chat/" +
-    window.CHAT_ID +
-    "/"
-);
+
 
       // 1. عملکرد دکمه فایل و پیش‌نمایش
     const fileInput = document.getElementById('file-upload');
@@ -458,123 +452,150 @@ function deleteForMe(messageId) {
     }
 const form = document.getElementById("message-form");
 
+
+// دریافت chat_id از آدرس صفحه
+const pathParts = window.location.pathname
+    .split("/")
+    .filter(Boolean);
+
+// برای آدرسی مثل /chat/chat/1/ مقدار 1 به دست می‌آید
+const chatId = pathParts[pathParts.length - 1];
+
+// در HTTPS باید از wss و در localhost معمولاً از ws استفاده شود
+const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+
+const wsUrl = `${wsScheme}://${window.location.host}/ws/chat/${chatId}/`;
+
+console.log("WebSocket URL:", wsUrl);
+
+const chatSocket = new WebSocket(wsUrl);
+
+chatSocket.onopen = function () {
+    console.log("WebSocket connected:", wsUrl);
+};
+
+chatSocket.onerror = function (error) {
+    console.error("WebSocket error:", error);
+};
+
+chatSocket.onclose = function (event) {
+    console.error(
+        "WebSocket closed:",
+        event.code,
+        event.reason || "بدون توضیح"
+    );
+};
+
+
 console.log("FORM FOUND:", form);
 
-if(form){
-
-    form.addEventListener("submit", async function(e){
-
+if (form) {
+    form.addEventListener("submit", async function (e) {
         e.preventDefault();
 
         console.log("SUBMIT AJAX");
 
         const formData = new FormData(form);
 
-        const response = await fetch(window.location.href,{
-            method:"POST",
-            body:formData
-        });
+        try {
+            const response = await fetch(window.location.href, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            });
 
-        const data = await response.json();
+            const data = await response.json();
 
-        console.log("SERVER RESPONSE:", data);
+            console.log("SERVER RESPONSE:", data);
 
+            if (data.success) {
+                chatBox.insertAdjacentHTML(
+                    "beforeend",
+                    `
+                    <div class="message sent">
+                        <button type="button"
+                                class="message-menu-btn"
+                                onclick="toggleMenu(this)">
+                            ⋮
+                        </button>
 
-        if(data.success){
+                        <div class="message-menu">
+                            <button type="button">ویرایش</button>
+                            <button type="button">فوروارد</button>
 
-            const chatBox = document.getElementById("chat-box");
+                            <a href="/chat/delete/${data.message_id}/"
+                               style="color:red;text-decoration:none;">
+                                حذف
+                            </a>
+                        </div>
 
-chatBox.insertAdjacentHTML(
-    "beforeend",
-    `
-    <div class="message sent">
+                        <div class="message-text">
+                            ${data.content}
+                        </div>
 
-        <button type="button"
-                class="message-menu-btn"
-                onclick="toggleMenu(this)">
-            ⋮
-        </button>
+                        <div class="message-info">
+                            ${data.time}
+                        </div>
+                    </div>
+                    `
+                );
 
-        <div class="message-menu">
-            <button type="button">ویرایش</button>
-            <button type="button">فوروارد</button>
-
-            <a href="/chat/delete/${data.message_id}/"
-               style="color:red;text-decoration:none;">
-                حذف
-            </a>
-        </div>
-
-        <div class="message-text">
-            ${data.content}
-        </div>
-
-        <div class="message-info">
-            ${data.time}
-        </div>
-
-    </div>
-    `
-);
-
-
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            form.reset();
+                chatBox.scrollTop = chatBox.scrollHeight;
+                form.reset();
+            }
+        } catch (error) {
+            console.error("Message submit error:", error);
         }
-
     });
-
 }
 
-chatSocket.onmessage = function(e){
 
+chatSocket.onmessage = function (e) {
     console.log("MESSAGE RECEIVED:", e.data);
 
     const data = JSON.parse(e.data);
 
-    // پیام خودم دوباره نمایش داده نشود
-    if(data.sender_id == window.CURRENT_USER_ID){
+    // جلوگیری از نمایش دوباره پیام فرستنده
+    if (String(data.sender_id) === String(window.CURRENT_USER_ID)) {
         return;
     }
 
-    const chatBox = document.getElementById("chat-box");
+    chatBox.insertAdjacentHTML(
+        "beforeend",
+        `
+        <div class="message received">
+            <button type="button"
+                    class="message-menu-btn"
+                    onclick="toggleMenu(this)">
+                ⋮
+            </button>
 
-chatBox.insertAdjacentHTML(
-    "beforeend",
-    `
-    <div class="message received">
+            <div class="message-menu">
+                <button type="button">ویرایش</button>
+                <button type="button">فوروارد</button>
 
-        <button type="button"
-                class="message-menu-btn"
-                onclick="toggleMenu(this)">
-            ⋮
-        </button>
+                <a href="/chat/delete/${data.message_id}/"
+                   style="color:red;text-decoration:none;">
+                    حذف
+                </a>
+            </div>
 
-        <div class="message-menu">
-            <button type="button">ویرایش</button>
-            <button type="button">فوروارد</button>
+            <div class="message-text">
+                ${data.message}
+            </div>
 
-            <a href="/chat/delete/${data.message_id}/"
-               style="color:red;text-decoration:none;">
-                حذف
-            </a>
+            <div class="message-info">
+                ${data.time}
+            </div>
         </div>
-
-        <div class="message-text">
-            ${data.message}
-        </div>
-
-        <div class="message-info">
-            ${data.time}
-        </div>
-
-    </div>
-    `
-);
+        `
+    );
 
     chatBox.scrollTop = chatBox.scrollHeight;
 };
+
 </script>
 
 </body>
