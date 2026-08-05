@@ -358,14 +358,6 @@ function deleteForMe(messageId) {
             });
         }
     });
-    fetch(`/chat/delete-for-me/${messageId}/`, {
-    method: "POST",
-    headers: {
-        "X-CSRFToken": csrftoken
-    }
-}).then(() => {
-    document.getElementById(`message-${messageId}`).remove();
-});
 
     // 7. اسکریپت باز کردن فایل (نسخه دیباگ شده)
     function openFile(url, type, filename) {
@@ -551,7 +543,7 @@ chatSocket.onmessage = function(e){
 chatBox.insertAdjacentHTML(
     "beforeend",
     `
-    <div class="message sent">
+    <div class="message received">
 
         <button type="button"
                 class="message-menu-btn"
@@ -570,7 +562,7 @@ chatBox.insertAdjacentHTML(
         </div>
 
         <div class="message-text">
-            ${data.content}
+            ${data.message}
         </div>
 
         <div class="message-info">
@@ -582,7 +574,7 @@ chatBox.insertAdjacentHTML(
 );
 
     chatBox.scrollTop = chatBox.scrollHeight;
-}
+};
 </script>
 
 </body>
