@@ -9,9 +9,24 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- SECURITY SETTINGS ---
+# SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key-change-me')
+# DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
+# ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+# --- SECURITY SETTINGS ---
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key-change-me')
-DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+# تبدیل رشته 'True' به بولین واقعی
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
+
+# اصلاح ALLOWED_HOSTS: حذف فاصله‌های اضافی و رشته‌های خالی
+raw_allowed_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [host.strip() for host in raw_allowed_hosts.split(',') if host.strip()]
+
+# اصلاح CSRF_TRUSTED_ORIGINS: حذف فاصله‌های اضافی و رشته‌های خالی
+raw_csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://localhost:8080')
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in raw_csrf_origins.split(',') if origin.strip()]
+
 
 # CSRF Protection for specific domains
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://localhost:8080').split(',')
