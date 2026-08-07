@@ -1,14 +1,15 @@
 import json
-
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
 
-from .models import Message
-
+# حذف ایمپورت از اینجا:
+# from .models import Message 
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+        # اضافه کردن ایمپورت در اینجا:
+        from .models import Message 
 
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
         self.room_group_name = f'chat_{self.chat_id}'
@@ -17,20 +18,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
-
         await self.accept()
 
+        # کوئری‌زدن با مدل
         messages = await sync_to_async(list)(
-            Message.objects.filter(
-                chat_id=self.chat_id,
-                status="sent"
-            ).exclude(
-                sender=self.scope["user"]
-            )
+            Message.objects.filter(chat_id=self.chat_id, status="sent")
+            .exclude(sender=self.scope["user"])
         )
 
         for message in messages:
-
             message.status = "delivered"
             await sync_to_async(message.save)()
 
@@ -44,15 +40,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
     async def disconnect(self, close_code):
-
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
         )
 
     async def chat_message(self, event):
+        # اضافه کردن ایمپورت در اینجا:
+        from .models import Message 
 
-        # ارسال پیام به کلاینت
         await self.send(text_data=json.dumps({
             "type": "message",
             "message_id": event["message_id"],
@@ -61,13 +57,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "time": event["time"]
         }))
 
-        # اگر این کاربر فرستنده پیام نیست
         if str(self.scope["user"].id) != str(event["sender_id"]):
-
-            message = await sync_to_async(
-                Message.objects.get
-            )(id=event["message_id"])
-
+            message = await sync_to_async(Message.objects.get)(id=event["message_id"])
             message.status = "delivered"
             await sync_to_async(message.save)()
 
@@ -81,7 +72,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
     async def message_status(self, event):
-
         await self.send(text_data=json.dumps({
             "type": "status",
             "message_id": event["message_id"],
