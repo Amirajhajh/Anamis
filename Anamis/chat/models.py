@@ -32,11 +32,12 @@ class Chat(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     group = models.ForeignKey(
-            'Group',
-            on_delete=models.CASCADE,
-            related_name='chat_link', # یا نام دلخواه دیگر
-            null=True, blank=True
-        )
+        'chat.Group',
+        on_delete=models.CASCADE,
+        related_name='chat_link',
+        null=True,
+        blank=True
+    )
     def __str__(self):
         if self.type == self.PRIVATE:
             if self.user1 and self.user2:
