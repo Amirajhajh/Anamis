@@ -97,8 +97,28 @@
 
 
           <div class="message-info">
-            {{ message.created_at|date:"H:i" }}
-          </div>
+
+    {{ message.created_at|date:"H:i" }}
+
+    {% if message.sender == request.user %}
+
+        {% if message.status == "sending" %}
+            ⏳
+
+        {% elif message.status == "sent" %}
+            ✓
+
+        {% elif message.status == "delivered" %}
+            ✓✓
+
+        {% elif message.status == "seen" %}
+            <span class="seen-status">✓✓</span>
+
+        {% endif %}
+
+    {% endif %}
+
+</div>
         </div>
       {% endfor %}
     </div>
@@ -314,15 +334,15 @@ function deleteForMe(messageId) {
             "X-CSRFToken": csrftoken
         }
     })
+
     .then(response => response.json())
     .then(data => {
 
         if(data.success){
 
-            const msg =
-                document.getElementById(
-                    `message-${messageId}`
-                );
+            const msg = document.getElementById(
+                `message-${messageId}`
+            );
 
             if(msg){
                 msg.remove();
@@ -490,82 +510,198 @@ chatSocket.onclose = function (event) {
 console.log("FORM FOUND:", form);
 
 if (form) {
+
     form.addEventListener("submit", async function (e) {
+
         e.preventDefault();
 
-        console.log("SUBMIT AJAX");
+        const text =
+            document.getElementById("message-input")
+            .value
+            .trim();
 
-        const formData = new FormData(form);
+        if (!text) return;
+
+        const tempId =
+            "temp-" + Date.now();
+
+        // نمایش فوری پیام
+        chatBox.insertAdjacentHTML(
+            "beforeend",
+            `
+            <div id="${tempId}"
+                 class="message sent">
+
+                <button type="button"
+                        class="message-menu-btn"
+                        onclick="toggleMenu(this)">
+                    ⋮
+                </button>
+
+                <div class="message-menu">
+                    <button type="button">
+                        ویرایش
+                    </button>
+
+                    <button type="button">
+                        فوروارد
+                    </button>
+                </div>
+
+                <div class="message-text">
+                    ${text}
+                </div>
+
+                <div class="message-info">
+                    ⏳
+                </div>
+
+            </div>
+            `
+        );
+
+        chatBox.scrollTop =
+            chatBox.scrollHeight;
+
+        const formData =
+            new FormData(form);
 
         try {
-            const response = await fetch(window.location.href, {
-                method: "POST",
-                body: formData,
-                headers: {
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-            });
 
-            const data = await response.json();
+            const response =
+                await fetch(
+                    window.location.href,
+                    {
+                        method: "POST",
+                        body: formData,
+                        headers: {
+                            "X-Requested-With":
+                                "XMLHttpRequest",
+                        },
+                    }
+                );
 
-            console.log("SERVER RESPONSE:", data);
+            const data =
+                await response.json();
 
             if (data.success) {
-                chatBox.insertAdjacentHTML(
+
+                const tempMessage =
+                    document.getElementById(
+                        tempId
+                    );
+
+                tempMessage.id =
+                    `message-${data.message_id}`;
+
+                // منوی حذف را بعد از دریافت id واقعی اضافه می‌کنیم
+                tempMessage.querySelector(
+                    ".message-menu"
+                ).insertAdjacentHTML(
                     "beforeend",
                     `
-                    <div class="message sent">
-                        <button type="button"
-                                class="message-menu-btn"
-                                onclick="toggleMenu(this)">
-                            ⋮
-                        </button>
-
-                        <div class="message-menu">
-                            <button type="button">ویرایش</button>
-                            <button type="button">فوروارد</button>
-
-                            <a href="/chat/delete/${data.message_id}/"
-                               style="color:red;text-decoration:none;">
-                                حذف
-                            </a>
-                        </div>
-
-                        <div class="message-text">
-                            ${data.content}
-                        </div>
-
-                        <div class="message-info">
-                            ${data.time}
-                        </div>
-                    </div>
+                    <button
+                        type="button"
+                        onclick="deleteForMe(${data.message_id})"
+                        style="color:red;">
+                        حذف برای من
+                    </button>
                     `
                 );
 
-                chatBox.scrollTop = chatBox.scrollHeight;
+                tempMessage.querySelector(
+                    ".message-info"
+                ).innerHTML =
+                    `${data.time} ✓`;
+
                 form.reset();
             }
+
         } catch (error) {
-            console.error("Message submit error:", error);
+
+            const tempMessage =
+                document.getElementById(
+                    tempId
+                );
+
+            if (tempMessage) {
+
+                tempMessage.querySelector(
+                    ".message-info"
+                ).innerHTML = "❌";
+            }
+
+            console.error(error);
         }
     });
 }
 
 
 chatSocket.onmessage = function (e) {
-    console.log("MESSAGE RECEIVED:", e.data);
 
-    const data = JSON.parse(e.data);
+    const data =
+        JSON.parse(e.data);
 
-    // جلوگیری از نمایش دوباره پیام فرستنده
-    if (String(data.sender_id) === String(window.CURRENT_USER_ID)) {
+    // وضعیت تیک‌ها
+    if (data.type === "status") {
+
+        const message =
+            document.getElementById(
+                `message-${data.message_id}`
+            );
+
+        if (message) {
+
+            const info =
+                message.querySelector(
+                    ".message-info"
+                );
+
+            if (
+                data.status === "delivered"
+            ) {
+
+                info.innerHTML =
+                    info.innerHTML.replace(
+                        "✓",
+                        "✓✓"
+                    );
+            }
+
+            if (
+                data.status === "seen"
+            ) {
+
+                info.innerHTML =
+                    info.innerHTML.replace(
+                        "✓✓",
+                        "👀"
+                    );
+            }
+        }
+
         return;
     }
 
+    if (data.type !== "message") {
+        return;
+    }
+
+    // پیام خودم دوباره نمایش داده نشود
+    if (
+        String(data.sender_id) ===
+        String(window.CURRENT_USER_ID)
+    ) {
+        return;
+    }
+
+    // پیام طرف مقابل
     chatBox.insertAdjacentHTML(
         "beforeend",
         `
-        <div class="message received">
+        <div id="message-${data.message_id}"
+             class="message received">
+
             <button type="button"
                     class="message-menu-btn"
                     onclick="toggleMenu(this)">
@@ -573,13 +709,18 @@ chatSocket.onmessage = function (e) {
             </button>
 
             <div class="message-menu">
-                <button type="button">ویرایش</button>
-                <button type="button">فوروارد</button>
 
-                <a href="/chat/delete/${data.message_id}/"
-                   style="color:red;text-decoration:none;">
-                    حذف
-                </a>
+                <button type="button">
+                    فوروارد
+                </button>
+
+                <button
+                    type="button"
+                    onclick="deleteForMe(${data.message_id})"
+                    style="color:red;">
+                    حذف برای من
+                </button>
+
             </div>
 
             <div class="message-text">
@@ -589,11 +730,13 @@ chatSocket.onmessage = function (e) {
             <div class="message-info">
                 ${data.time}
             </div>
+
         </div>
         `
     );
 
-    chatBox.scrollTop = chatBox.scrollHeight;
+    chatBox.scrollTop =
+        chatBox.scrollHeight;
 };
 
 </script>

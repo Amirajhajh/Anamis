@@ -1,14 +1,16 @@
-#consumers.py
 import json
 
 from channels.generic.websocket import AsyncWebsocketConsumer
+from asgiref.sync import sync_to_async
+
+from .models import Message
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
 
         self.chat_id = self.scope['url_route']['kwargs']['chat_id']
-
         self.room_group_name = f'chat_{self.chat_id}'
 
         await self.channel_layer.group_add(
@@ -17,6 +19,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+
+        messages = await sync_to_async(list)(
+            Message.objects.filter(
+                chat_id=self.chat_id,
+                status="sent"
+            ).exclude(
+                sender=self.scope["user"]
+            )
+        )
+
+        for message in messages:
+
+            message.status = "delivered"
+            await sync_to_async(message.save)()
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "message_status",
+                    "message_id": message.id,
+                    "status": "delivered"
+                }
+            )
 
     async def disconnect(self, close_code):
 
@@ -27,9 +52,38 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def chat_message(self, event):
 
+        # ارسال پیام به کلاینت
         await self.send(text_data=json.dumps({
+            "type": "message",
             "message_id": event["message_id"],
             "message": event["message"],
             "sender_id": event["sender_id"],
             "time": event["time"]
+        }))
+
+        # اگر این کاربر فرستنده پیام نیست
+        if str(self.scope["user"].id) != str(event["sender_id"]):
+
+            message = await sync_to_async(
+                Message.objects.get
+            )(id=event["message_id"])
+
+            message.status = "delivered"
+            await sync_to_async(message.save)()
+
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "message_status",
+                    "message_id": event["message_id"],
+                    "status": "delivered"
+                }
+            )
+
+    async def message_status(self, event):
+
+        await self.send(text_data=json.dumps({
+            "type": "status",
+            "message_id": event["message_id"],
+            "status": event["status"]
         }))

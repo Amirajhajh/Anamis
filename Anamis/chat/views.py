@@ -134,6 +134,7 @@ def chat_detail(request, chat_id):
             message = form.save(commit=False)
             message.sender = request.user
             message.chat = chat
+            message.status = "sent"
             message.save()
 
             channel_layer = get_channel_layer()
