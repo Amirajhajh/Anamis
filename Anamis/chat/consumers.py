@@ -48,13 +48,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def chat_message(self, event):
         # اضافه کردن ایمپورت در اینجا:
         from .models import Message 
-
         await self.send(text_data=json.dumps({
             "type": "message",
             "message_id": event["message_id"],
             "message": event["message"],
             "sender_id": event["sender_id"],
-            "time": event["time"]
+            "file_url": event.get("file_url"),
+            "file_name": event.get("file_name"),
+            "time": event["time"],
         }))
 
         if str(self.scope["user"].id) != str(event["sender_id"]):

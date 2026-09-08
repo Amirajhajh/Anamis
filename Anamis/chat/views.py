@@ -108,37 +108,34 @@ def start_chat(request):
 
 @login_required
 def chat_detail(request, chat_id):
-
     chat = get_object_or_404(Chat, id=chat_id)
 
+    # بررسی دسترسی کاربر به چت
     if request.user not in [chat.user1, chat.user2]:
         return JsonResponse({"error": "unauthorized"}, status=403)
 
-    other_user = (
-        chat.user2 if chat.user1 == request.user
-        else chat.user1
-    )
-
-    messages_list = chat.messages.exclude(
-        deleted_for=request.user
-    ).order_by('created_at')
-
+    other_user = chat.user2 if chat.user1 == request.user else chat.user1
+    messages_list = chat.messages.exclude(deleted_for=request.user).order_by('created_at')
     form = MessageForm()
 
     if request.method == 'POST':
-
         form = MessageForm(request.POST, request.FILES)
-
         if form.is_valid():
-
             message = form.save(commit=False)
             message.sender = request.user
             message.chat = chat
             message.status = "sent"
             message.save()
 
-            channel_layer = get_channel_layer()
+            # آماده‌سازی داده‌ها برای ارسال
+            file_url = message.file.url if message.file else None
+            send_time = message.created_at.strftime('%H:%M')
 
+            # --- بخش ارسال از طریق WebSocket (برای طرف مقابل) ---
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            
+            channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 f"chat_{chat.id}",
                 {
@@ -146,51 +143,28 @@ def chat_detail(request, chat_id):
                     "message_id": message.id,
                     "message": message.content,
                     "sender_id": request.user.id,
-                    "time": message.created_at.strftime("%H:%M"),
+                    "file_url": file_url,  # بسیار مهم برای گیرنده
+                    "time": send_time,
+                    'file_name': message.file.name if message.file else None,
                 }
             )
 
+            # --- پاسخ به فرستنده (از طریق AJAX) ---
             return JsonResponse({
-                "success": True,
-                "message_id": message.id,
-                "content": message.content,
-                "time": message.created_at.strftime("%H:%M")
+                'success': True,
+                'message_id': message.id,
+                'content': message.content,
+                'file_url': file_url,
+                'time': send_time,
             })
 
-        return JsonResponse({
-            "success": False,
-            "errors": form.errors
-        })
+        return JsonResponse({"success": False, "errors": form.errors})
 
     return render(request, 'chat/chat_detail.html', {
         'chat': chat,
         'messages': messages_list,
         'other_user': other_user,
         'form': form,
-    })
-
-
-@login_required
-def delete_message(request, message_id):
-
-    message = get_object_or_404(Message, id=message_id)
-
-    message.deleted_for.add(request.user)
-
-    return redirect(
-        'chat:chat_detail',
-        chat_id=message.chat.id
-    )
-
-@login_required
-def delete_for_me(request, message_id):
-
-    message = get_object_or_404(Message, id=message_id)
-
-    message.deleted_for.add(request.user)
-
-    return JsonResponse({
-        "success": True
     })
 
 
@@ -215,6 +189,34 @@ def send_message(request, receiver_id):
         form = MessageForm()
         
     return render(request, 'chat/send_message.html', {'form': form, 'receiver': receiver})
+
+
+@login_required
+def delete_message(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+
+    chat_id = message.chat.id
+
+    # حذف کامل پیام از دیتابیس
+    message.delete()
+
+    return redirect(
+        'chat:chat_detail',
+        chat_id=chat_id
+    )
+
+@login_required
+def delete_for_me(request, message_id):
+
+    message = get_object_or_404(Message, id=message_id)
+
+    message.deleted_for.add(request.user)
+
+    return JsonResponse({
+        "success": True
+    })
+
+
 
 
 

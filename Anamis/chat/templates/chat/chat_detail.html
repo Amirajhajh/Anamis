@@ -44,11 +44,11 @@
             </button>
             {# اطمینان حاصل کنید که message.id همیشه وجود دارد #}
             {% if message.id %}
-              <a href="{% url 'chat:delete_message' message.id %}"
-                 onclick="return confirm('آیا از حذف این پیام مطمئن هستید؟')"
-                 style="color:red; margin-right:10px; text-decoration:none;">
+            <a href="{% url 'chat:delete_message' message.id %}"
+            onclick="return confirm('آیا از حذف این پیام مطمئن هستید؟')"
+            style="color:red; margin-right:10px; text-decoration:none;">
                 حذف
-              </a>
+            </a>
             {% else %}
               <span style="color:gray; margin-right:10px;">حذف (ID ناموجود)</span>
             {% endif %}
@@ -520,10 +520,59 @@ if (form) {
             .value
             .trim();
 
-        if (!text) return;
+        const hasFile =
+            fileInput.files.length > 0;
+
+        if (!text && !hasFile) {
+            return;
+        }
 
         const tempId =
             "temp-" + Date.now();
+            let fileHtml = "";
+        let tempFileHtml = "";
+
+        if (hasFile) {
+
+            const file = fileInput.files[0];
+
+            if (file.type.startsWith("image/")) {
+
+                const previewUrl =
+                    URL.createObjectURL(file);
+
+                tempFileHtml = `
+                    <div class="message-media">
+                        <img src="${previewUrl}"
+                            class="message-image">
+                    </div>
+                `;
+
+            } else if (
+                file.type.startsWith("video/")
+            ) {
+
+                const previewUrl =
+                    URL.createObjectURL(file);
+
+                tempFileHtml = `
+                    <div class="message-media">
+                        <video class="message-video"
+                            controls>
+                            <source src="${previewUrl}">
+                        </video>
+                    </div>
+                `;
+
+            } else {
+
+                tempFileHtml = `
+                    <div class="file-attachment">
+                        📎 ${file.name}
+                    </div>
+                `;
+            }
+        }
 
         // نمایش فوری پیام
         chatBox.insertAdjacentHTML(
@@ -549,8 +598,10 @@ if (form) {
                 </div>
 
                 <div class="message-text">
-                    ${text}
+                    ${text || ""}
                 </div>
+
+                ${tempFileHtml}
 
                 <div class="message-info">
                     ⏳
@@ -613,6 +664,8 @@ if (form) {
                     ".message-info"
                 ).innerHTML =
                     `${data.time} ✓`;
+                previewContainer.style.display = "none";
+                previewContent.innerHTML = "";
 
                 form.reset();
             }
@@ -641,6 +694,57 @@ chatSocket.onmessage = function (e) {
 
     const data =
         JSON.parse(e.data);
+
+let fileHtml = "";
+
+if (data.file_url) {
+
+    const ext = data.file_url
+        .split(".")
+        .pop()
+        .toLowerCase();
+
+    if (
+        ["jpg","jpeg","png","gif","webp"]
+        .includes(ext)
+    ) {
+
+        fileHtml = `
+            <div class="message-media">
+                <img
+                    src="${data.file_url}"
+                    class="message-image">
+            </div>
+        `;
+
+    } else if (
+        ["mp4","mov","avi","mkv"]
+        .includes(ext)
+    ) {
+
+        fileHtml = `
+            <div class="message-media">
+                <video
+                    class="message-video"
+                    controls>
+                    <source
+                        src="${data.file_url}">
+                </video>
+            </div>
+        `;
+
+    } else {
+
+        fileHtml = `
+            <div class="file-attachment">
+                <a href="${data.file_url}"
+                   target="_blank">
+                   📎 ${data.file_name || "فایل"}
+                </a>
+            </div>
+        `;
+    }
+}
 
     // وضعیت تیک‌ها
     if (data.type === "status") {
@@ -695,6 +799,9 @@ chatSocket.onmessage = function (e) {
         return;
     }
 
+let tempFileHtml = "";
+
+
     // پیام طرف مقابل
     chatBox.insertAdjacentHTML(
         "beforeend",
@@ -724,8 +831,10 @@ chatSocket.onmessage = function (e) {
             </div>
 
             <div class="message-text">
-                ${data.message}
+                ${data.message || ""}
             </div>
+
+            ${fileHtml}
 
             <div class="message-info">
                 ${data.time}
@@ -734,6 +843,7 @@ chatSocket.onmessage = function (e) {
         </div>
         `
     );
+
 
     chatBox.scrollTop =
         chatBox.scrollHeight;
