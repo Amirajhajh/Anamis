@@ -85,9 +85,6 @@ def register_step1(request):
 
         otp_code = random.randint(100000, 999999)
 
-        request.session['otp_email'] = email
-        request.session['otp_code'] = str(otp_code)
-
         try:
             send_mail(
                 'کد تایید ثبت نام',
@@ -97,11 +94,23 @@ def register_step1(request):
                 fail_silently=False,
             )
 
-            messages.success(request, 'کد تایید به ایمیل شما ارسال شد.')
+            # فقط اگر ایمیل با موفقیت ارسال شد، کد را در session ذخیره کن
+            request.session['otp_email'] = email
+            request.session['otp_code'] = str(otp_code)
+
+            messages.success(
+                request,
+                'کد تایید به ایمیل شما ارسال شد.'
+            )
+
             return redirect('register_step2')
 
         except Exception as e:
-            messages.error(request, f'خطا در ارسال ایمیل: {e}')
+            print('EMAIL ERROR:', e)
+            messages.error(
+                request,
+                'ارسال ایمیل انجام نشد. لطفاً دوباره تلاش کنید.'
+            )
 
     return render(request, 'accounts/register_step1.html')
 
