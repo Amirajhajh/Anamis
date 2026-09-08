@@ -18,7 +18,11 @@
     <div class="header-right">
       <a href="{% url 'chat:chat_list' %}" style="color:white; text-decoration:none; font-size:20px;">←</a>
       <a href="{% url 'chat:profile_detail' other_user.id %}" class="user-link">
-        <img src="{{ other_user.profile_picture.url }}" class="profile-pic rounded-profile-pic" alt="Profile">
+        {% if profile.profile_picture %}
+            <img src="{{ profile.profile_picture.url }}">
+        {% else %}
+            <img src="{% static 'images/default-avatar.png' %}">
+        {% endif %}
         <span class="user-name">{{ other_user.username }}</span>
       </a>
     </div>

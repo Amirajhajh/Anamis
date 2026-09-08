@@ -95,7 +95,7 @@ import dj_database_url
 DATABASES = {
     'default': dj_database_url.config(
         # اگر متغیر محیطی DATABASE_URL پیدا نشد، از sqlite استفاده کن (برای تست لوکال)
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default=f"sqlite:///{BASE_DIR / 'anamisdatabase'}",
         conn_max_age=600
     )
 }
