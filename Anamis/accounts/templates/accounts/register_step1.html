@@ -24,8 +24,15 @@
             </ul>
         {% endif %}
         <div class="input-group">
-        <label for="phone">شماره تلفن:</label>
-        <input type="text" id="phone" name="phone" placeholder="مثال: 09123456789" value="{{ request.POST.phone }}"> 
+        <label for="email">ایمیل:</label>
+
+        <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="example@gmail.com"
+            required
+        >
         </div>
         <button type="submit" class="auth-btn">ارسال</button>
     </form>
