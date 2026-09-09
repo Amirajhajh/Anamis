@@ -105,45 +105,6 @@ def register_step1(request):
 
     return render(request, 'accounts/register_step1.html')
 
-# مرحله دوم: تایید کد و ساخت کاربر
-def register_step2(request):
-    # اگر کاربر مستقیم بیاید و از مرحله اول رد نشده باشد
-    if 'otp_email' not in request.session:
-        return redirect('register_step1')
-
-    if request.method == 'POST':
-        user_otp = request.POST.get('otp_code')
-        session_otp = request.session.get('otp_code')
-        email = request.session.get('otp_email')
-
-        if user_otp == session_otp:
-            # کد درست است، حالا اطلاعات دیگر (نام، رمز عبور و...) را می‌گیریم
-            username = request.POST.get('username') # یا از ایمیل استفاده می‌کنیم
-            password = request.POST.get('password')
-
-            try:
-                # ساخت کاربر جدید
-                new_user = User.objects.create_user(
-                    username=username, 
-                    email=email, 
-                    password=password
-                )
-                new_user.save()
-
-                # پاک کردن سشن‌ها بعد از موفقیت
-                del request.session['otp_email']
-                del request.session['otp_code']
-
-                messages.success(request, 'ثبت نام با موفقیت انجام شد!')
-                return redirect('login') # یا هر صفحه‌ای که دوست دارید
-            
-            except Exception as e:
-                messages.error(request, f'خطا در ساخت کاربر: {e}')
-        else:
-            messages.error(request, 'کد وارد شده اشتباه است.')
-
-    return render(request, 'accounts/register_step2.html')
-
 def register_step2(request):
     if request.method == 'POST':
         entered_code = request.POST.get('code')
