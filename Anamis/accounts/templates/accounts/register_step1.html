@@ -1,5 +1,97 @@
 <!DOCTYPE html>
 {% load static %}
+<html lang="fa" dir="rtl"> <!-- اضافه کردن زبان فارسی و جهت راست به چپ -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ثبت‌نام - Messenger{% endblock %}</title>
+    <!-- استفاده از فایل CSS شما -->
+    <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+    
+    <style>
+        /* استایل‌های کمکی برای بهبود تجربه کاربری در صورت نبود در accounts.css */
+        .messages { list-style: none; padding: 0; }
+        .messages li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        
+        /* جلوگیری از تغییر شکل دکمه هنگام غیرفعال شدن */
+        .auth-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<div class="auth-container">
+    <div class="auth-card">
+        <h2 class="auth-title">ثبت نام با ایمیل</h2>
+        <p class="auth-subtitle">ایمیل خود را وارد کنید تا کد تأیید ارسال شود.</p>
+        
+        <!-- بخش نمایش پیام‌های جنگو -->
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">
+                        {{ message }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <form method="post" class="auth-form" id="registerForm">
+            {% csrf_token %}
+            
+            <div class="input-group">
+                <label for="email">ایمیل:</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="example@gmail.com"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="auth-btn" id="submitBtn">
+                <span id="btnText">ارسال کد تایید</span>
+            </button>
+        </form>
+        
+        <p class="login-link">
+            قبلاً ثبت‌نام کرده‌اید؟ <a href="{% url 'login' %}">وارد شوید</a>
+        </p>
+    </div>
+</div>
+
+<script>
+    // اسکریپت برای جلوگیری از ارسال چندینباره فرم
+    const form = document.getElementById('registerForm');
+    const btn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+
+    form.onsubmit = function() {
+        // غیرفعال کردن دکمه برای جلوگیری از کلیک مجدد
+        btn.disabled = true;
+        // تغییر متن دکمه برای اطلاع‌رسانی به کاربر
+        btnText.innerText = "در حال ارسال...";
+    };
+</script>
+
+</body>
+</html>
+
+
+
+<!-- <!DOCTYPE html>
+{% load static %}
 <html>
 <head>
     <title>{% block title %}Messenger{% endblock %}</title>
@@ -42,7 +134,7 @@
 </div>
 
 </body>
-</html>
+</html> -->
 
 
 

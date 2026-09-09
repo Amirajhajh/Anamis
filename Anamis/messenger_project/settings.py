@@ -150,29 +150,29 @@ MEDIA_ROOT = BASE_DIR / 'media'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
-load_dotenv() # بارگذاری متغیرها از فایل .env
+# بارگذاری فایل .env
+load_dotenv()
 
-import os
+# ... سایر تنظیمات ...
 
 # --- EMAIL CONFIGURATION ---
+# اگر متغیر در Environment Variables وجود نداشت، از مقدار پیش‌فرض استفاده می‌کند
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
 
-# توجه: در تصویر شما هم EMAIL_HOST_USER دارید و هم EMAIL_USER
-# بهتر است از هر دو در کد استفاده کنید تا با تنظیمات رندر کاملاً ست باشد
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+# هماهنگی با متغیرهایی که در تصویر رندر فرستادید
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER') or os.environ.get('EMAIL_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD') or os.environ.get('EMAIL_PASS')
 
-# اگر از EMAIL_PASS در کد استفاده می‌کنید، آن را هم اضافه کنید
-if not EMAIL_HOST_PASSWORD:
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS')
-
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER
 
 EMAIL_TIMEOUT = 10
 
+# --- ALLOWED HOSTS ---
+# حتماً آدرس سایت در رندر را اینجا اضافه کنید
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost 127.0.0.1').split(' ')
 
 # --- EMAIL ---
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
