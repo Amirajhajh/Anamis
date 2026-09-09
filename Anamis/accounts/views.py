@@ -106,7 +106,7 @@ def register_step1(request):
             messages.error(request, "خطا در ارسال ایمیل. لطفاً دوباره تلاش کنید.")
             return render(request, 'register/step1.html')
 
-    return render(request, 'register/step1.html')
+    return render(request, 'registerstep1.html')
 
 # مرحله دوم: تایید کد و ساخت کاربر
 def register_step2(request):
