@@ -78,21 +78,25 @@ def profile_detail_current(request):
 def register_step1(request):
     if request.method == 'POST':
         email = request.POST.get('email')
+        
+        # --- دیباگ برای Render ---
+        print(f"DEBUG: Register Step 1 POST received. Email: {email}", flush=True)
+        
         if not email:
+            print("DEBUG: Email is empty!", flush=True)
             messages.error(request, 'لطفاً ایمیل خود را وارد کنید.')
             return redirect('register_step1')
 
-        # حذف سشن‌های قبلی برای اطمینان از پاک بودن مسیر
-        request.session.flush() 
-
+        print("DEBUG: Checking if user exists...", flush=True)
         if User.objects.filter(email=email).exists():
+            print(f"DEBUG: User with email {email} already exists.", flush=True)
             messages.error(request, 'این ایمیل قبلاً ثبت نام شده است.')
             return redirect('register_step1')
 
         otp_code = str(random.randint(100000, 999999))
 
         try:
-            # ارسال ایمیل ...
+            print(f"DEBUG: Attempting to send email with code: {otp_code}", flush=True)
             send_mail(
                 'کد تایید ثبت نام',
                 f'کد تایید شما است: {otp_code}',
@@ -100,13 +104,22 @@ def register_step1(request):
                 [email],
                 fail_silently=False,
             )
+            
+            # ذخیره در سشن
             request.session['otp_email'] = email
             request.session['otp_code'] = otp_code
+            request.session.modified = True # بسیار مهم
+            
+            print(f"DEBUG: Email sent successfully. Redirecting to step 2. Session email: {request.session.get('otp_email')}", flush=True)
             return redirect('register_step2')
+
         except Exception as e:
+            print(f"DEBUG: EXCEPTION CAUGHT: {str(e)}", flush=True)
             messages.error(request, f'خطا در ارسال ایمیل: {e}')
+            return redirect('register_step1')
 
     return render(request, 'accounts/register_step1.html')
+
 
 def register_step2(request):
     if request.method == 'POST':
