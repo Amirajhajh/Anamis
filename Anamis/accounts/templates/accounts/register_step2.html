@@ -1,16 +1,10 @@
-<!DOCTYPE html>
 {% load static %}
-<html>
-<head>
-    <title>{% block title %}Sing in{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
-
 <!DOCTYPE html>
-{% load static %}
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تکمیل ثبت‌نام</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تکمیل ثبت‌نام | Anamis Chat</title>
     <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
 </head>
 <body>
@@ -19,7 +13,7 @@
     <div class="auth-card">
 
         <h2>تکمیل ثبت‌نام</h2>
-        <p>کد ارسال‌شده به ایمیل خود را وارد کنید.</p>
+        <p>لطفاً اطلاعات خود را تکمیل کنید.</p>
 
         <form method="post" class="auth-form">
             {% csrf_token %}
@@ -27,24 +21,26 @@
             {% if messages %}
                 <ul class="messages">
                     {% for message in messages %}
-                        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>
-                            {{ message }}
-                        </li>
+                        <li class="{{ message.tags }}">{{ message }}</li>
                     {% endfor %}
                 </ul>
             {% endif %}
 
+            <!-- بخش کد تایید -->
             <div class="input-group">
-                <label for="code">کد تأیید</label>
+                <label for="code">کد تأیید (ارسال شده به ایمیل)</label>
                 <input
                     type="text"
                     id="code"
                     name="code"
-                    placeholder="کد ۶ رقمی"
+                    placeholder="کد ۶ رقمی را وارد کنید"
                     required
                 >
             </div>
 
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+            <!-- بخش اطلاعات کاربر -->
             <div class="input-group">
                 <label for="username">نام کاربری</label>
                 <input
@@ -79,7 +75,7 @@
             </div>
 
             <button type="submit" class="auth-btn">
-                ثبت‌نام
+                تکمیل ثبت‌نام
             </button>
         </form>
 
@@ -88,8 +84,8 @@
             <a href="{% url 'login' %}">وارد شوید</a>
         </p>
 
-    </div>
-</div>
+    </div> <!-- پایان auth-card -->
+</div> <!-- پایان auth-container -->
 
 </body>
 </html>

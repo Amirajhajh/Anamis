@@ -174,29 +174,5 @@ EMAIL_TIMEOUT = 10
 # حتماً آدرس سایت در رندر را اینجا اضافه کنید
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost 127.0.0.1').split(' ')
 
-# --- EMAIL ---
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-
-# # حالا مقادیر را از سیستم می‌خوانیم، نه از متن مستقیم
-# EMAIL_HOST_USER = os.environ.get('EMAIL_USER')
-# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS')
-
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-# EMAIL_TIMEOUT = 10
-
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-
-# EMAIL_HOST_USER = 'AnamisMessager@gmail.com'
-# EMAIL_HOST_PASSWORD = 'xxmb siaz misv trlz'
-
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
-# EMAIL_TIMEOUT = 10
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
