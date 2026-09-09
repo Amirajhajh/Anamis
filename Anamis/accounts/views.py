@@ -81,7 +81,7 @@ def register_step1(request):
         
         if not email:
             messages.error(request, "لطفاً ایمیل خود را وارد کنید.")
-            return render(request, 'register/step1.html')
+            return render(request, 'register_step1.html')
 
         # ۱. تولید کد تایید ۶ رقمی
         otp_code = str(random.randint(100000, 999999))
@@ -100,13 +100,13 @@ def register_step1(request):
         try:
             send_mail(subject, message, email_from, recipient_list)
             messages.success(request, "کد تایید به ایمیل شما ارسال شد.")
-            return render(request, 'register/step2.html') # رفتن به صفحه وارد کردن کد
+            return render(request, 'register_step2.html') # رفتن به صفحه وارد کردن کد
         except Exception as e:
             print(f"Error sending email: {e}") # برای دیباگ در کنسول
             messages.error(request, "خطا در ارسال ایمیل. لطفاً دوباره تلاش کنید.")
-            return render(request, 'register/step1.html')
+            return render(request, 'register_step1.html')
 
-    return render(request, 'registerstep1.html')
+    return render(request, 'register_step1.html')
 
 # مرحله دوم: تایید کد و ساخت کاربر
 def register_step2(request):
