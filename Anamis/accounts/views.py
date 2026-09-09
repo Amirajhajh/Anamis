@@ -182,3 +182,53 @@ def register_step2(request):
         return redirect('chat:chat_list')
 
     return render(request, 'accounts/register_step2.html')
+
+def register_direct_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+        # اگر فیلد نام کامل یا عکس پروفایل دارید، آن‌ها را هم اینجا دریافت کنید
+        # full_name = request.POST.get('full_name') 
+        # profile_picture = request.FILES.get('profile_picture') # برای فایل
+
+        # اعتبارسنجی نام کاربری
+        if not username:
+            messages.error(request, 'نام کاربری را وارد کنید.')
+            # در صورت خطا، به همان صفحه ثبت نام برمی‌گردیم
+            return render(request, 'accounts/register_account.html') 
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'این نام کاربری قبلاً انتخاب شده است.')
+            return render(request, 'accounts/register_account.html')
+
+        # اعتبارسنجی رمز عبور
+        if not password:
+            messages.error(request, 'رمز عبور را وارد کنید.')
+            return render(request, 'accounts/register_account.html')
+
+        if password != confirm_password:
+            messages.error(request, 'رمز عبور و تکرار آن یکسان نیستند.')
+            return render(request, 'accounts/register_account.html')
+
+        # ایجاد کاربر جدید
+        # اگر فقط نام کاربری و رمز عبور دارید:
+        user = User.objects.create_user(
+            username=username,
+            password=password
+        )
+        
+        # اگر فیلدهای اضافی مانند نام کامل دارید (نیاز به مدل پروفایل دارد):
+        # user = User.objects.create_user(username=username, password=password)
+        # profile = UserProfile.objects.create(user=user, full_name=full_name, profile_picture=profile_picture)
+        # توجه: برای استفاده از UserProfile، باید آن را تعریف و در settings.py تنظیم کرده باشید.
+
+        # ورود خودکار کاربر پس از ثبت نام موفق
+        login(request, user)
+
+        messages.success(request, 'ثبت‌نام شما با موفقیت انجام شد!')
+        # هدایت به صفحه اصلی یا لیست چت‌ها
+        return redirect('chat:chat_list') # یا هر URL دیگری که می‌خواهید
+
+    # اگر متد GET بود، صفحه ثبت نام را نمایش بده
+    return render(request, 'accounts/register_account.html')

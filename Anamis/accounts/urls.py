@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from .models import Chat, Message
 from accounts import views as accounts_views
 from django.contrib.auth import views as auth_views
-
+from . import views 
 
 from django.urls import path
 from . import views
@@ -22,4 +22,6 @@ urlpatterns = [
     path('register/verify/', views.register_step2, name='register_step2'),
     path('password/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('password/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
+
+    path('register-now/', views.register_direct_view, name='register_direct'),
 ]

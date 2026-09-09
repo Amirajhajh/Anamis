@@ -1,0 +1,156 @@
+<!-- accounts/register_account.html -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ساخت اکانت جدید</title>
+    <style>
+        body {
+            font-family: 'Tahoma', sans-serif; /* یا فونت فارسی دلخواه */
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 25px;
+            text-align: right; /* برای تراز راست لیبل‌ها */
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="password"],
+        input[type="email"] { /* اگر ایمیل هم دارید */
+            width: calc(100% - 20px); /* Adjust for padding */
+            padding: 12px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box; /* Important */
+            font-size: 16px;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        .password-requirements {
+            font-size: 12px;
+            color: #888;
+            text-align: right;
+            margin-top: 5px;
+        }
+        /* استایل برای نمایش پیام‌های خطا */
+        .messages {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+        .messages li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .messages .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .messages .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>ساخت اکانت جدید</h2>
+
+        <!-- نمایش پیام‌های خطا -->
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">
+                        {{ message }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <!-- اکشن فرم را به URL مربوطه (register_direct) تغییر دهید -->
+        <form action="{% url 'register_direct' %}" method="post" enctype="multipart/form-data"> 
+            {% csrf_token %}
+            
+            <!-- فیلد نام کاربری -->
+            <div class="form-group">
+                <label for="username">نام کاربری:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+
+            <!-- فیلد رمز عبور -->
+            <div class="form-group">
+                <label for="password">رمز عبور:</label>
+                <input type="password" id="password" name="password" required>
+                <div class="password-requirements">
+                    حداقل ۸ کاراکتر، شامل حروف بزرگ و کوچک و اعداد.
+                </div>
+            </div>
+
+            <!-- فیلد تکرار رمز عبور -->
+            <div class="form-group">
+                <label for="confirm_password">تکرار رمز عبور:</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
+            </div>
+
+            <!-- 
+            اگر فیلدهای اضافی مانند نام کامل یا عکس پروفایل دارید، آن‌ها را در اینجا اضافه کنید:
+            -->
+            <!--
+            <div class="form-group">
+                <label for="full_name">نام کامل:</label>
+                <input type="text" id="full_name" name="full_name"> 
+            </div>
+            
+            <div class="form-group">
+                <label for="profile_picture">تصویر پروفایل:</label>
+                <input type="file" id="profile_picture" name="profile_picture" accept="image/*">
+            </div>
+            -->
+
+            <input type="submit" value="ساخت اکانت">
+        </form>
+
+    </div>
+</body>
+</html>
+
