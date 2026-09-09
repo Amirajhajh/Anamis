@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from dotenv import load_dotenv
+
 
 # بارگذاری متغیرهای محیطی از فایل .env
 load_dotenv()
@@ -152,18 +152,40 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 load_dotenv() # بارگذاری متغیرها از فایل .env
 
-# --- EMAIL ---
+import os
+
+# --- EMAIL CONFIGURATION ---
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
 
-# حالا مقادیر را از سیستم می‌خوانیم، نه از متن مستقیم
-EMAIL_HOST_USER = os.environ.get('EMAIL_USER')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS')
+# توجه: در تصویر شما هم EMAIL_HOST_USER دارید و هم EMAIL_USER
+# بهتر است از هر دو در کد استفاده کنید تا با تنظیمات رندر کاملاً ست باشد
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# اگر از EMAIL_PASS در کد استفاده می‌کنید، آن را هم اضافه کنید
+if not EMAIL_HOST_PASSWORD:
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS')
+
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+
 EMAIL_TIMEOUT = 10
+
+
+# --- EMAIL ---
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+
+# # حالا مقادیر را از سیستم می‌خوانیم، نه از متن مستقیم
+# EMAIL_HOST_USER = os.environ.get('EMAIL_USER')
+# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS')
+
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# EMAIL_TIMEOUT = 10
 
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
