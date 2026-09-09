@@ -82,7 +82,9 @@ def register_step1(request):
             messages.error(request, 'لطفاً ایمیل خود را وارد کنید.')
             return redirect('register_step1')
 
-        # چک کردن اینکه آیا کاربر قبلاً ثبت نام کرده یا خیر
+        # حذف سشن‌های قبلی برای اطمینان از پاک بودن مسیر
+        request.session.flush() 
+
         if User.objects.filter(email=email).exists():
             messages.error(request, 'این ایمیل قبلاً ثبت نام شده است.')
             return redirect('register_step1')
@@ -90,6 +92,7 @@ def register_step1(request):
         otp_code = str(random.randint(100000, 999999))
 
         try:
+            # ارسال ایمیل ...
             send_mail(
                 'کد تایید ثبت نام',
                 f'کد تایید شما است: {otp_code}',
