@@ -161,9 +161,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True              # حتماً True، نه SSL
-EMAIL_HOST_USER = 'anamismasager@gmail.com'
+EMAIL_HOST_USER = 'anamismessager@gmail.com'
 EMAIL_HOST_PASSWORD = 'EMAIL_PASS'  # App Password (۱۶ حرفی با فاصله)
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = 'anamismessager@gmail'
 
 # --- ALLOWED HOSTS ---
 # حتماً آدرس سایت در رندر را اینجا اضافه کنید
