@@ -179,5 +179,11 @@ EMAIL_TIMEOUT = 10
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 EMAIL_TIMEOUT = 10  
+# در settings.py
+ALLOWED_HOSTS = [
+    'anamischat-j80p.onrender.com',  # دامنه رندر شما
+    '127.0.0.1',                     # برای اجرای لوکال
+    'localhost',                     # برای اجرای لوکال
+]
 
 
