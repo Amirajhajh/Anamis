@@ -171,3 +171,6 @@ ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost 127.0.0.1').sp
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
+EMAIL_TIMEOUT = 10  
+
+
