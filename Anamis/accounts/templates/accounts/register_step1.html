@@ -1,47 +1,25 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="fa" dir="rtl"> <!-- اضافه کردن زبان فارسی و جهت راست به چپ -->
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}ثبت‌نام - Messenger{% endblock %}</title>
-    <!-- استفاده از فایل CSS شما -->
+    <title>{% block title %}Messenger - ثبت نام{% endblock %}</title>
+    <!-- استفاده از فایل CSS اصلی شما -->
     <link rel="stylesheet" href="{% static 'css/accounts.css' %}">
-    
-    <style>
-        /* استایل‌های کمکی برای بهبود تجربه کاربری در صورت نبود در accounts.css */
-        .messages { list-style: none; padding: 0; }
-        .messages li {
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            font-size: 0.9rem;
-            text-align: center;
-        }
-        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        
-        /* جلوگیری از تغییر شکل دکمه هنگام غیرفعال شدن */
-        .auth-btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-    </style>
 </head>
 <body>
 
 <div class="auth-container">
     <div class="auth-card">
-        <h2 class="auth-title">ثبت نام با ایمیل</h2>
-        <p class="auth-subtitle">ایمیل خود را وارد کنید تا کد تأیید ارسال شود.</p>
+        <h2>ثبت نام با ایمیل</h2>
+        <p>ایمیل خود را وارد کنید تا کد تأیید ارسال شود.</p>
         
-        <!-- بخش نمایش پیام‌های جنگو -->
+        <!-- بخش پیام‌ها: دقیقاً مطابق با نام کلاس‌های فایل شما -->
         {% if messages %}
             <ul class="messages">
                 {% for message in messages %}
-                    <li class="{{ message.tags }}">
-                        {{ message }}
-                    </li>
+                    <li class="{{ message.tags }}">{{ message }}</li>
                 {% endfor %}
             </ul>
         {% endif %}
@@ -61,27 +39,26 @@
             </div>
 
             <button type="submit" class="auth-btn" id="submitBtn">
-                <span id="btnText">ارسال کد تایید</span>
+                <span id="btnText">ارسال</span>
+                <span id="btnLoader" style="display: none;">در حال ارسال...</span>
             </button>
         </form>
         
-        <p class="login-link">
-            قبلاً ثبت‌نام کرده‌اید؟ <a href="{% url 'login' %}">وارد شوید</a>
-        </p>
+        <p class="login-link">قبلاً ثبت‌نام کرده‌اید؟ <a href="{% url 'login' %}">وارد شوید</a></p>
     </div>
 </div>
 
 <script>
-    // اسکریپت برای جلوگیری از ارسال چندینباره فرم
+    // جلوگیری از ارسال چندباره فرم
     const form = document.getElementById('registerForm');
     const btn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
+    const btnLoader = document.getElementById('btnLoader');
 
     form.onsubmit = function() {
-        // غیرفعال کردن دکمه برای جلوگیری از کلیک مجدد
-        btn.disabled = true;
-        // تغییر متن دکمه برای اطلاع‌رسانی به کاربر
-        btnText.innerText = "در حال ارسال...";
+        btn.disabled = true; // غیرفعال کردن دکمه
+        btnText.style.display = 'none'; // مخفی کردن متن اصلی
+        btnLoader.style.display = 'inline'; // نمایش متن در حال ارسال
     };
 </script>
 

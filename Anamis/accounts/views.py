@@ -78,35 +78,32 @@ def profile_detail_current(request):
 def register_step1(request):
     if request.method == 'POST':
         email = request.POST.get('email')
-        
         if not email:
-            messages.error(request, "لطفاً ایمیل خود را وارد کنید.")
-            return render(request, 'register_step1.html')
+            messages.error(request, 'لطفاً ایمیل خود را وارد کنید.')
+            return redirect('register_step1')
 
-        # ۱. تولید کد تایید ۶ رقمی
+        # چک کردن اینکه آیا کاربر قبلاً ثبت نام کرده یا خیر
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'این ایمیل قبلاً ثبت نام شده است.')
+            return redirect('register_step1')
+
         otp_code = str(random.randint(100000, 999999))
 
-        # ۲. ذخیره ایمیل و کد در سشن (Session) برای مرحله بعد
-        request.session['register_email'] = email
-        request.session['otp_code'] = otp_code
-        request.session['otp_expiry'] = 600  # کد تا ۱۰ دقیقه اعتبار دارد (به ثانیه)
-
-        # ۳. ارسال ایمیل
-        subject = 'کد تایید ثبت‌نام - Anamis Messenger'
-        message = f'کد تایید شما جهت ثبت‌نام: {otp_code}'
-        email_from = settings.DEFAULT_FROM_EMAIL
-        recipient_list = [email]
-
         try:
-            send_mail(subject, message, email_from, recipient_list)
-            messages.success(request, "کد تایید به ایمیل شما ارسال شد.")
-            return render(request, 'register_step2.html') # رفتن به صفحه وارد کردن کد
+            send_mail(
+                'کد تایید ثبت نام',
+                f'کد تایید شما است: {otp_code}',
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+            request.session['otp_email'] = email
+            request.session['otp_code'] = otp_code
+            return redirect('register_step2')
         except Exception as e:
-            print(f"Error sending email: {e}") # برای دیباگ در کنسول
-            messages.error(request, "خطا در ارسال ایمیل. لطفاً دوباره تلاش کنید.")
-            return render(request, 'register_step1.html')
+            messages.error(request, f'خطا در ارسال ایمیل: {e}')
 
-    return render(request, 'register_step1.html')
+    return render(request, 'accounts/register_step1.html')
 
 # مرحله دوم: تایید کد و ساخت کاربر
 def register_step2(request):
