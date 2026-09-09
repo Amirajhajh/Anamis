@@ -106,10 +106,14 @@ def register_step1(request):
             return redirect('register_step2')
 
         except Exception as e:
-            print('EMAIL ERROR:', e)
+            import traceback
+
+            print("EMAIL ERROR:", repr(e))
+            traceback.print_exc()
+
             messages.error(
                 request,
-                'ارسال ایمیل انجام نشد. لطفاً دوباره تلاش کنید.'
+                f'خطا: {e}'
             )
 
     return render(request, 'accounts/register_step1.html')
