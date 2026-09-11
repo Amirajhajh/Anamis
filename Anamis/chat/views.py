@@ -169,26 +169,439 @@ def chat_detail(request, chat_id):
 
 
 @login_required
+def chat_detail(request, chat_id):
+    """
+    صفحه اصلی چت و ارسال پیام با AJAX/HTTP.
+
+    WebSocket فقط وظیفه broadcast کردن پیام ذخیره‌شده
+    را بر عهده دارد.
+    """
+
+    chat = get_object_or_404(Chat, id=chat_id)
+
+    # =========================================================
+    # بررسی دسترسی
+    # =========================================================
+
+    if request.user not in (chat.user1, chat.user2):
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "unauthorized",
+            },
+            status=403,
+        )
+
+    other_user = (
+        chat.user2
+        if chat.user1 == request.user
+        else chat.user1
+    )
+
+    # =========================================================
+    # دریافت پیام‌ها
+    # =========================================================
+
+    messages_list = (
+        chat.messages
+        .exclude(
+            deleted_for=request.user
+        )
+        .select_related(
+            "sender",
+            "reply_to",
+        )
+        .order_by("created_at")
+    )
+
+    # =========================================================
+    # ارسال پیام
+    # =========================================================
+
+    if request.method == "POST":
+
+        form = MessageForm(
+            request.POST,
+            request.FILES,
+        )
+
+        if form.is_valid():
+
+            message = form.save(
+                commit=False
+            )
+
+            # فرستنده
+            message.sender = request.user
+
+            # چت
+            message.chat = chat
+
+            # وضعیت اولیه
+            message.status = "sent"
+
+            # -------------------------------------------------
+            # Reply
+            # -------------------------------------------------
+
+            reply_to_id = request.POST.get(
+                "reply_to"
+            )
+
+            if reply_to_id:
+
+                try:
+                    reply_message = (
+                        Message.objects
+                        .get(
+                            id=reply_to_id,
+                            chat=chat,
+                        )
+                    )
+
+                    message.reply_to = (
+                        reply_message
+                    )
+
+                except Message.DoesNotExist:
+                    message.reply_to = None
+
+            # -------------------------------------------------
+            # ذخیره پیام
+            # -------------------------------------------------
+
+            message.save()
+
+            # -------------------------------------------------
+            # اطلاعات پیام
+            # -------------------------------------------------
+
+            file_url = None
+            file_name = None
+
+            if message.file:
+
+                try:
+                    file_url = message.file.url
+                except (ValueError, AttributeError):
+                    file_url = None
+
+                file_name = message.file.name
+
+            send_time = (
+                message.created_at.strftime(
+                    "%H:%M"
+                )
+            )
+
+            reply_to_id = (
+                message.reply_to_id
+                if message.reply_to_id
+                else None
+            )
+
+            reply_text = ""
+
+            if message.reply_to:
+                reply_text = (
+                    message.reply_to.content
+                    or ""
+                )
+
+            # -------------------------------------------------
+            # ارسال به WebSocket
+            # -------------------------------------------------
+
+            channel_layer = get_channel_layer()
+
+            async_to_sync(
+                channel_layer.group_send
+            )(
+                f"chat_{chat.id}",
+                {
+                    "type": "chat_message",
+
+                    "message_id": message.id,
+
+                    "message": (
+                        message.content
+                        or ""
+                    ),
+
+                    "sender_id": (
+                        request.user.id
+                    ),
+
+                    "file_url": file_url,
+
+                    "file_name": file_name,
+
+                    "time": send_time,
+
+                    "reply_to_id": (
+                        reply_to_id
+                    ),
+
+                    "reply_text": (
+                        reply_text
+                    ),
+                },
+            )
+
+            # -------------------------------------------------
+            # پاسخ به JavaScript
+            # -------------------------------------------------
+
+            return JsonResponse(
+                {
+                    "success": True,
+
+                    "message_id": message.id,
+
+                    "content": (
+                        message.content
+                        or ""
+                    ),
+
+                    "file_url": file_url,
+
+                    "file_name": file_name,
+
+                    "time": send_time,
+
+                    "sender_id": (
+                        request.user.id
+                    ),
+
+                    "reply_to_id": (
+                        reply_to_id
+                    ),
+
+                    "reply_text": (
+                        reply_text
+                    ),
+
+                    "status": "sent",
+                }
+            )
+
+        # -----------------------------------------------------
+        # خطای فرم
+        # -----------------------------------------------------
+
+        return JsonResponse(
+            {
+                "success": False,
+                "errors": form.errors,
+            },
+            status=400,
+        )
+
+    # GET
+    form = MessageForm()
+
+    return render(
+        request,
+        "chat/chat_detail.html",
+        {
+            "chat": chat,
+            "messages": messages_list,
+            "other_user": other_user,
+            "form": form,
+        },
+    )
+
+
+@login_required
 def send_message(request, receiver_id):
     """
-    این تابع برای ارسال پیام مستقیم (Direct Message) است.
-    نکته: پیشنهاد می‌شود از همان منطق chat_detail استفاده کنید تا ساختار یکپارچه بماند.
-    """
-    receiver = get_object_or_404(User, id=receiver_id)
+    ارسال پیام از مسیر receiver.
     
-    if request.method == 'POST':
-        form = MessageForm(request.POST, request.FILES)
-        if form.is_valid():
-            message = form.save(commit=False)
-            message.sender = request.user
-            message.receiver = receiver
-            message.save()
-            messages.success(request, 'پیام با موفقیت ارسال شد.')
-            return redirect('chat:inbox', receiver_id=receiver_id)
-    else:
+    این View برای سیستم قدیمی/صفحه send_message نگه داشته شده
+    و با reply_to و status هماهنگ شده است.
+    """
+
+    receiver = get_object_or_404(
+        User,
+        id=receiver_id,
+    )
+
+    if request.method != "POST":
         form = MessageForm()
-        
-    return render(request, 'chat/send_message.html', {'form': form, 'receiver': receiver})
+
+        return render(
+            request,
+            "chat/send_message.html",
+            {
+                "form": form,
+                "receiver": receiver,
+            },
+        )
+
+    form = MessageForm(
+        request.POST,
+        request.FILES,
+    )
+
+    if not form.is_valid():
+        return render(
+            request,
+            "chat/send_message.html",
+            {
+                "form": form,
+                "receiver": receiver,
+            },
+        )
+
+    message = form.save(
+        commit=False
+    )
+
+    message.sender = request.user
+    message.receiver = receiver
+    message.status = "sent"
+
+    # =========================================================
+    # Reply
+    # =========================================================
+
+    reply_to_id = request.POST.get(
+        "reply_to"
+    )
+
+    if reply_to_id:
+
+        try:
+            reply_message = (
+                Message.objects
+                .get(id=reply_to_id)
+            )
+
+            # بهتر است reply هم به یکی از طرفین همین مکالمه
+            # مربوط باشد.
+            if (
+                reply_message.sender_id
+                in (
+                    request.user.id,
+                    receiver.id,
+                )
+            ):
+                message.reply_to = (
+                    reply_message
+                )
+
+        except Message.DoesNotExist:
+            pass
+
+    # =========================================================
+    # ذخیره
+    # =========================================================
+
+    message.save()
+
+    # =========================================================
+    # WebSocket
+    # =========================================================
+
+    file_url = None
+    file_name = None
+
+    if message.file:
+
+        try:
+            file_url = message.file.url
+        except (ValueError, AttributeError):
+            file_url = None
+
+        file_name = message.file.name
+
+    reply_to_id = (
+        message.reply_to_id
+        if message.reply_to_id
+        else None
+    )
+
+    reply_text = ""
+
+    if message.reply_to:
+        reply_text = (
+            message.reply_to.content
+            or ""
+        )
+
+    # ---------------------------------------------------------
+    # پیدا کردن Chat
+    # ---------------------------------------------------------
+
+    chat = (
+        Chat.objects
+        .filter(
+            user1__in=[
+                request.user,
+                receiver,
+            ],
+            user2__in=[
+                request.user,
+                receiver,
+            ],
+        )
+        .first()
+    )
+
+    if chat:
+
+        channel_layer = get_channel_layer()
+
+        async_to_sync(
+            channel_layer.group_send
+        )(
+            f"chat_{chat.id}",
+            {
+                "type": "chat_message",
+
+                "message_id": message.id,
+
+                "message": (
+                    message.content
+                    or ""
+                ),
+
+                "sender_id": (
+                    request.user.id
+                ),
+
+                "file_url": file_url,
+
+                "file_name": file_name,
+
+                "time": (
+                    message.created_at
+                    .strftime("%H:%M")
+                ),
+
+                "reply_to_id": (
+                    reply_to_id
+                ),
+
+                "reply_text": (
+                    reply_text
+                ),
+            },
+        )
+
+    # =========================================================
+    # پاسخ
+    # =========================================================
+
+    messages.success(
+        request,
+        "پیام با موفقیت ارسال شد.",
+    )
+
+    return redirect(
+        "chat:inbox",
+        receiver_id=receiver_id,
+    )
 
 
 @login_required

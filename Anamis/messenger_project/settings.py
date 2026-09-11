@@ -182,8 +182,10 @@ EMAIL_TIMEOUT = 10
 # در settings.py
 ALLOWED_HOSTS = [
     'anamischat-j80p.onrender.com',  # دامنه رندر شما
-    '127.0.0.1',                     # برای اجرای لوکال
+    '127.0.0.1',
+    '*'
     'localhost',                     # برای اجرای لوکال
 ]
+ALLOWED_HOSTS = ['*']
 
 

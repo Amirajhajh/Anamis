@@ -9,851 +9,1630 @@
 
 </head>
 <body>
-
 <div class="chat-page">
 
-
-  <!-- HEADER -->
-  <header class="header">
+<header class="header">
     <div class="header-right">
-      <a href="{% url 'chat:chat_list' %}" style="color:white; text-decoration:none; font-size:20px;">←</a>
-      <a href="{% url 'chat:profile_detail' other_user.id %}" class="user-link">
-        {% if profile.profile_picture %}
-            <img src="{{ profile.profile_picture.url }}">
-        {% else %}
-            <img src="{% static 'images/default-avatar.png' %}">
-        {% endif %}
-        <span class="user-name">{{ other_user.username }}</span>
-      </a>
-    </div>
-    
-  </header>
-  
-    <!-- CHAT -->
-    <div class="chat-box" id="chat-box">
-      {% for message in messages %}
-        <div
-    id="message-{{ message.id }}"
-    class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}">
-          <button type="button" class="message-menu-btn" onclick="toggleMenu(this)">⋮</button>
+        <a href="{% url 'chat:chat_list' %}" class="back-btn">←</a>
 
-          <div class="message-menu">
-            <button type="button">ویرایش</button>
-            <button type="button">فوروارد</button>
-            <button
-            type="button"
-            onclick="deleteForMe({{ message.id }})"
-            style="color:red;">
-             حذف برای من
-            </button>
-            {# اطمینان حاصل کنید که message.id همیشه وجود دارد #}
-            {% if message.id %}
-            <a href="{% url 'chat:delete_message' message.id %}"
-            onclick="return confirm('آیا از حذف این پیام مطمئن هستید؟')"
-            style="color:red; margin-right:10px; text-decoration:none;">
-                حذف
-            </a>
+        <a href="{% url 'chat:profile_detail' other_user.id %}" class="user-link">
+
+            {% if profile.profile_picture %}
+                <img src="{{ profile.profile_picture.url }}" class="avatar">
             {% else %}
-              <span style="color:gray; margin-right:10px;">حذف (ID ناموجود)</span>
+                <img src="{% static 'images/default-avatar.png' %}" class="avatar">
             {% endif %}
-          </div>
 
-          {% if message.content %}
-            <div class="message-text">{{ message.content }}</div>
-          {% endif %}
+            <span class="user-name">
+                {{ other_user.username }}
+            </span>
 
-          <!-- بخش نمایش فایل -->
-          {% if message.file %}
-            {% with file_url=message.file.url file_name=message.file.name|lower %}
-              
-              {% if file_name|slice:"-4:" == ".jpg" or file_name|slice:"-5:" == ".jpeg" or file_name|slice:"-4:" == ".png" or file_name|slice:"-4:" == ".gif" or file_name|slice:"-4:" == ".webp" %}
-                <!-- تصویر -->
-                <div class="message-media" onclick="openFile('{{ file_url }}', 'image', '{{ file_name }}')" style="cursor: pointer;">
-                  <img src="{{ file_url }}" alt="image" class="message-image">
+        </a>
+    </div>
+</header>
+
+
+<div id="chat-box" class="chat-box">
+
+{% for message in messages %}
+
+<div
+    id="message-{{ message.id }}"
+    class="message {% if message.sender == request.user %}sent{% else %}received{% endif %}"
+>
+
+    <button
+        class="message-menu-btn"
+        onclick="toggleMenu(this)"
+        type="button"
+    >
+        ⋮
+    </button>
+
+    <div class="message-menu">
+
+        <button
+            type="button"
+            onclick="replyToMessage(
+                {{ message.id }},
+                '{{ message.content|escapejs }}'
+            )"
+        >
+            ریپلای
+        </button>
+
+        {% if message.sender == request.user %}
+        <button type="button">
+            ویرایش
+        </button>
+        {% endif %}
+
+        <button type="button">
+            فوروارد
+        </button>
+
+        <button
+            type="button"
+            style="color:red"
+            onclick="deleteForMe({{ message.id }})"
+        >
+            حذف برای من
+        </button>
+
+        {% if message.sender == request.user %}
+        <a
+            href="{% url 'chat:delete_message' message.id %}"
+            style="color:red"
+        >
+            حذف
+        </a>
+        {% endif %}
+
+    </div>
+
+
+    {% if message.reply_to %}
+    <div class="reply-box">
+
+        <div class="reply-header">
+            پاسخ به
+        </div>
+
+        <div class="reply-content">
+            {{ message.reply_to.content|truncatechars:60 }}
+        </div>
+
+    </div>
+    {% endif %}
+
+
+    {% if message.file %}
+
+        {% with file_name=message.file.name|lower %}
+
+            {% if ".jpg" in file_name or ".jpeg" in file_name or ".png" in file_name or ".webp" in file_name %}
+
+                <div class="message-media">
+
+                    <img
+                        src="{{ message.file.url }}"
+                        class="message-image"
+                        alt="image"
+                    >
+
                 </div>
 
-              {% elif file_name|slice:"-4:" == ".mp4" or file_name|slice:"-4:" == ".mov" or file_name|slice:"-4:" == ".avi" or file_name|slice:"-4:" == ".mkv" %}
-                <!-- ویدیو -->
-                <div class="message-media" onclick="openFile('{{ file_url }}', 'video', '{{ file_name }}')" style="cursor: pointer;">
-                  <video class="message-video" controls>
-                    <source src="{{ file_url }}">
-                    مرورگر شما از ویدیو پشتیبانی نمی‌کند.
-                  </video>
+            {% elif ".mp4" in file_name or ".mov" in file_name or ".avi" in file_name or ".mkv" in file_name %}
+
+                <div class="message-media">
+
+                    <video
+                        class="message-video"
+                        controls
+                    >
+                        <source src="{{ message.file.url }}">
+                    </video>
+
                 </div>
 
-              {% else %}
-                <!-- فایل‌های دیگر (PDF, Zip, Doc و ...) -->
-              <div>
-                <a href="{{ message.file.url }}" download style="display: block; margin-top: 5px; color: black; text-decoration: underline;">
-                <div class="file-attachment" onclick="openFile('{{ file_url }}', 'file', '{{ file_name }}')" style="cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 5px;">
-                  <span style="font-size: 24px;">📎</span>
-                  <div>
-                    <div style="font-weight: bold; font-size: 14px; color: var(--tg-text);">{{ file_name }}</div>
-                    <div style="font-size: 12px; color: var(--tg-meta);">برای دانلود کلیک کنید</div>
-                  </div>
-                </div>
-              </a>
-              </div>
-              {% endif %}
+            {% else %}
 
-            {% endwith %}
-          {% endif %}
+                <a
+                    href="{{ message.file.url }}"
+                    class="file-attachment"
+                    download
+                >
+                    📎 {{ message.file.name }}
+                </a>
+
+            {% endif %}
+
+        {% endwith %}
+
+    {% endif %}
 
 
-          <div class="message-info">
+    {% if message.content %}
+    <div class="message-text">
+        {{ message.content }}
+    </div>
+    {% endif %}
 
-    {{ message.created_at|date:"H:i" }}
+
+<div class="message-info">
+
+    <span class="message-time">
+        {{ message.created_at|date:"H:i" }}
+    </span>
 
     {% if message.sender == request.user %}
 
-        {% if message.status == "sending" %}
-            ⏳
-
-        {% elif message.status == "sent" %}
-            ✓
-
-        {% elif message.status == "delivered" %}
-            ✓✓
-
-        {% elif message.status == "seen" %}
-            <span class="seen-status">✓✓</span>
-
-        {% endif %}
+        <span
+            class="message-status"
+            id="status-{{ message.id }}"
+        >
+            {% if message.status == "sending" %}
+                ⏳
+            {% elif message.status == "sent" %}
+                ✓
+            {% elif message.status == "delivered" %}
+                ✓✓
+            {% elif message.status == "seen" %}
+                <span class="seen-status">✓✓</span>
+            {% endif %}
+        </span>
 
     {% endif %}
 
 </div>
-        </div>
-      {% endfor %}
-    </div>
-  <!-- INPUT -->
-  <div class="input-area">
-    <form method="post" enctype="multipart/form-data" class="message-form" id="message-form">
-      {% csrf_token %}
 
-            <!-- دکمه فایل -->
-            <label for="file-upload" class="icon-btn" title="ارسال فایل">
-                <input type="file" id="file-upload" name="file" style="display: none;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                </svg>
-            </label>
-
-
-<!-- دکمه ایموجی با type="button" -->
-<button type="button" onclick="toggleEmojiPicker()" style="background: none; border: none; font-size: 24px; cursor: pointer;">
-  😊
-</button>
-      <div class="input-wrapper">
-        <!-- اینجا id="message-input" اضافه شد -->
-        <textarea 
-            name="content" 
-            id="message-input" 
-            class="form-control" 
-            placeholder="پیام خود را بنویسید..." 
-            rows="1"
-        ></textarea>
-      </div>
-    <button type="submit" class="send-btn">
-        <span style="font-size:18px;">➤</span>
-    </button>
-    </form>
-            <!-- بخش پیش‌نمایش فایل (مخفی تا زمانی که فایلی انتخاب شود) -->
-    <div id="file-preview-container" class="file-preview" style="display: none; margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 8px; border: 1px solid #ddd;">
-        <p style="margin: 0 0 5px 0; font-size: 14px; color: #666;">پیش‌نمایش فایل:</p>
-        <div id="preview-content" style="max-width: 200px;"></div>
-        <button type="button" id="remove-file" style="margin-top: 5px; padding: 5px 10px; background: #ff4d4d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">حذف فایل</button>
-    </div>
-
-    
-<!-- پنجره انتخاب ایموجی (این div باید در صفحه وجود داشته باشد، مثلا پایین صفحه یا کنار) -->
-<div id="emoji-picker" style="
-    display: none; /* پیش‌فرض مخفی */
-    position: absolute;
-    bottom: 60px; /* فاصله از پایین */
-    right: 10px;
-    background: var(--tg-header);
-    border: 1px solid var(--tg-border);
-    border-radius: 12px;
-    padding: 10px;
-    width: 300px;
-    max-height: 200px;
-    overflow-y: auto;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    z-index: 100;
-">
-  <!-- لیست ایموجی‌ها -->
-  <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px;">
-    <span onclick="addEmoji('😊')" style="cursor: pointer; font-size: 20px; text-align: center;">😊</span>
-    <span onclick="addEmoji('😂')" style="cursor: pointer; font-size: 20px; text-align: center;">😂</span>
-    <span onclick="addEmoji('❤️')" style="cursor: pointer; font-size: 20px; text-align: center;">❤️</span>
-    <span onclick="addEmoji('👍')" style="cursor: pointer; font-size: 20px; text-align: center;">👍</span>
-    <span onclick="addEmoji('🎉')" style="cursor: pointer; font-size: 20px; text-align: center;">🎉</span>
-    <span onclick="addEmoji('😢')" style="cursor: pointer; font-size: 20px; text-align: center;">😢</span>
-    <span onclick="addEmoji('😡')" style="cursor: pointer; font-size: 20px; text-align: center;">😡</span>
-    <span onclick="addEmoji('🤔')" style="cursor: pointer; font-size: 20px; text-align: center;">🤔</span>
-    <!-- می‌تونی ایموجی‌های بیشتری اضافه کنی -->
-  </div>
 </div>
 
+{% endfor %}
+
+</div>
+
+
+<div class="input-area">
+
+    <div
+        id="reply-preview"
+        class="reply-preview"
+        style="display:none"
+    >
+
+        <div id="reply-text"></div>
+
+        <button
+            type="button"
+            onclick="cancelReply()"
+        >
+            ✕
+        </button>
+
+    </div>
+
+
+    <form
+        method="post"
+        enctype="multipart/form-data"
+        id="message-form"
+        class="message-form"
+    >
+
+        {% csrf_token %}
+
+        <input
+            type="hidden"
+            name="reply_to"
+            id="reply-to-id"
+        >
+
+        <label
+            for="file-upload"
+            class="icon-btn"
+        >
+            📎
+        </label>
+
+        <input
+            type="file"
+            id="file-upload"
+            name="file"
+            hidden
+        >
+
+        <button
+            type="button"
+            onclick="toggleEmojiPicker()"
+            class="emoji-btn"
+        >
+            😊
+        </button>
+
+        <div class="input-wrapper">
+
+            <textarea
+                id="message-input"
+                name="content"
+                rows="1"
+                placeholder="پیام خود را بنویسید..."
+            ></textarea>
+
+        </div>
+
+        <button
+            type="submit"
+            class="send-btn"
+        >
+            ➤
+        </button>
+
+    </form>
+
+
+    <div
+        id="file-preview-container"
+        class="file-preview"
+        style="display:none"
+    >
+
+        <div id="preview-content"></div>
+
+        <button
+            id="remove-file"
+            type="button"
+        >
+            حذف فایل
+        </button>
+
+    </div>
+
+</div>
+
+
+<div
+    id="emoji-picker"
+    class="emoji-picker"
+    style="display:none"
+>
+
+    <span onclick="addEmoji('😊')">😊</span>
+    <span onclick="addEmoji('😂')">😂</span>
+    <span onclick="addEmoji('❤️')">❤️</span>
+    <span onclick="addEmoji('👍')">👍</span>
+    <span onclick="addEmoji('🔥')">🔥</span>
+    <span onclick="addEmoji('🎉')">🎉</span>
+    <span onclick="addEmoji('😢')">😢</span>
+    <span onclick="addEmoji('😎')">😎</span>
+    <span onclick="addEmoji('🤔')">🤔</span>
+    <span onclick="addEmoji('😡')">😡</span>
+    <span onclick="addEmoji('😍')">😍</span>
+    <span onclick="addEmoji('🥰')">🥰</span>
+
+</div>
+
+
+<div
+    id="file-modal"
+    class="file-modal"
+    style="display:none"
+>
+
+    <div class="modal-content">
+
+        <button
+            type="button"
+            onclick="closeModal()"
+            class="close-modal"
+        >
+            ✕
+        </button>
+
+        <div id="modal-media-container"></div>
+
+        <div id="modal-info"></div>
+
+    </div>
+
+</div>
+
+</div>
+```html
 <script>
+/* =========================
+   CONFIG
+========================= */
+
 window.CHAT_ID = "{{ chat.id }}";
 window.CURRENT_USER_ID = "{{ request.user.id }}";
-</script>
 
-<script>
+let currentReplyId = null;
+let chatSocket = null;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+
+const chatBox = document.getElementById("chat-box");
+const form = document.getElementById("message-form");
+const messageInput = document.getElementById("message-input");
+const fileInput = document.getElementById("file-upload");
+const previewContainer = document.getElementById("file-preview-container");
+const previewContent = document.getElementById("preview-content");
+const removeFileBtn = document.getElementById("remove-file");
+const replyPreview = document.getElementById("reply-preview");
+const replyText = document.getElementById("reply-text");
+const replyToId = document.getElementById("reply-to-id");
+
+const chatId =
+    window.CHAT_ID ||
+    window.location.pathname.split("/").filter(Boolean).pop();
+
+const wsScheme =
+    window.location.protocol === "https:" ? "wss" : "ws";
+
+const wsUrl =
+    `${wsScheme}://${window.location.host}/ws/chat/${chatId}/`;
 
 
-const protocol =
-    window.location.protocol === "https:"
-        ? "wss://"
-        : "ws://";
+/* =========================
+   CSRF
+========================= */
 
+function getCookie(name) {
+    let value = null;
 
-      // 1. عملکرد دکمه فایل و پیش‌نمایش
-    const fileInput = document.getElementById('file-upload');
-    const previewContainer = document.getElementById('file-preview-container');
-    const previewContent = document.getElementById('preview-content');
-    const removeFileBtn = document.getElementById('remove-file');
-
-    if (fileInput && previewContainer && previewContent && removeFileBtn) {
-        fileInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const fileType = file.type;
-                const fileName = file.name;
-                
-                previewContent.innerHTML = '';
-                
-                if (fileType.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.style.maxWidth = '200px';
-                        img.style.borderRadius = '8px';
-                        previewContent.appendChild(img);
-                    };
-                    reader.readAsDataURL(file);
-                } else if (fileType.startsWith('video/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const video = document.createElement('video');
-                        video.src = e.target.result;
-                        video.controls = true;
-                        video.style.maxWidth = '200px';
-                        video.style.borderRadius = '8px';
-                        previewContent.appendChild(video);
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    previewContent.innerHTML = `<span style="font-size: 14px;">فایل: ${fileName}</span>`;
-                }
-                
-                previewContainer.style.display = 'block';
-            }
-        });
-
-        removeFileBtn.addEventListener('click', function() {
-            fileInput.value = '';
-            previewContainer.style.display = 'none';
-            previewContent.innerHTML = '';
-        });
-    }
-
-    // 2. باز و بسته کردن پنجره ایموجی
-    function toggleEmojiPicker() {
-        const picker = document.getElementById('emoji-picker');
-        if (picker) {
-            if (picker.style.display === 'none' || picker.style.display === '') {
-                picker.style.display = 'block';
-            } else {
-                picker.style.display = 'none';
-            }
-        }
-    }
-
-    // 3. اضافه کردن ایموجی به باکس متن (اصلاح شده با آیدی درست)
-    function addEmoji(emoji) {
-        const input = document.getElementById('message-input'); // آیدی درست: message-input
-        
-        if (input) {
-            input.value += emoji;
-            input.focus();
-        } else {
-            console.error('باکس پیام پیدا نشد! مطمئن شوید id="message-input" در HTML وجود دارد.');
-        }
-    }
-
-    // 4. بستن پنجره ایموجی اگر کاربر بیرون از آن کلیک کرد
-    window.onclick = function(event) {
-        const picker = document.getElementById('emoji-picker');
-        const btn = document.querySelector('button[onclick="toggleEmojiPicker()"]');
-        
-        if (picker && btn) {
-            if (event.target != picker && event.target != btn && !picker.contains(event.target)) {
-                picker.style.display = 'none';
-            }
-        }
-    }
-
-    // 5. بزرگ شدن خودکار textarea (اصلاح شده با پیدا کردن المان)
-    const textarea = document.getElementById('message-input');
-    if (textarea) {
-        textarea.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
-    }
-
-    // 6. مدیریت منوی سه نقطه (همان کد قبلی)
-    function getCookie(name) {
-    let cookieValue = null;
-
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-
-        for (let cookie of cookies) {
+    if (document.cookie) {
+        document.cookie.split(";").forEach(cookie => {
             cookie = cookie.trim();
 
-            if (cookie.startsWith(name + '=')) {
-                cookieValue = decodeURIComponent(
+            if (cookie.startsWith(name + "=")) {
+                value = decodeURIComponent(
                     cookie.substring(name.length + 1)
                 );
-                break;
             }
-        }
+        });
     }
 
-    return cookieValue;
+    return value;
 }
 
 const csrftoken = getCookie("csrftoken");
 
-function deleteForMe(messageId) {
 
-    fetch(`/chat/delete-for-me/${messageId}/`, {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": csrftoken
+/* =========================
+   HELPERS
+========================= */
+
+function escapeHtml(value) {
+    if (value === null || value === undefined) return "";
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function scrollToBottom(smooth = false) {
+    if (!chatBox) return;
+
+    requestAnimationFrame(() => {
+        if (smooth) {
+            chatBox.scrollTo({
+                top: chatBox.scrollHeight,
+                behavior: "smooth"
+            });
+        } else {
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
-    })
+    });
+}
 
-    .then(response => response.json())
-    .then(data => {
 
-        if(data.success){
+/* =========================
+   REPLY
+========================= */
 
-            const msg = document.getElementById(
-                `message-${messageId}`
+function replyToMessage(id, text) {
+    currentReplyId = String(id);
+
+    if (replyToId) {
+        replyToId.value = String(id);
+    }
+
+    if (replyText) {
+        replyText.textContent = text || "";
+    }
+
+    if (replyPreview) {
+        replyPreview.style.display = "flex";
+    }
+
+    messageInput?.focus();
+}
+
+function cancelReply() {
+    currentReplyId = null;
+
+    if (replyToId) {
+        replyToId.value = "";
+    }
+
+    if (replyText) {
+        replyText.textContent = "";
+    }
+
+    if (replyPreview) {
+        replyPreview.style.display = "none";
+    }
+}
+
+function createReplyHtml(text) {
+    if (!text) return "";
+
+    return `
+        <div class="reply-box">
+            <small>پاسخ به:</small>
+            <div>${escapeHtml(text)}</div>
+        </div>
+    `;
+}
+
+
+/* =========================
+   FILE PREVIEW
+========================= */
+
+function showFilePreview(file) {
+    if (!previewContainer || !previewContent) return;
+
+    previewContent.innerHTML = "";
+
+    if (!file) {
+        previewContainer.style.display = "none";
+        return;
+    }
+
+    const type = file.type || "";
+    const name = file.name || "فایل";
+
+    if (type.startsWith("image/") || type.startsWith("video/")) {
+        const reader = new FileReader();
+
+        reader.onload = event => {
+            const element = document.createElement(
+                type.startsWith("image/") ? "img" : "video"
             );
 
-            if(msg){
-                msg.remove();
-            }
-        }
+            element.src = event.target.result;
 
-    });
+            if (element.tagName === "VIDEO") {
+                element.controls = true;
+            }
+
+            element.style.maxWidth = "200px";
+            element.style.maxHeight = "150px";
+            element.style.borderRadius = "8px";
+
+            previewContent.appendChild(element);
+        };
+
+        reader.readAsDataURL(file);
+    } else {
+        const span = document.createElement("span");
+        span.textContent = `📎 ${name}`;
+        previewContent.appendChild(span);
+    }
+
+    previewContainer.style.display = "block";
 }
 
+function removeSelectedFile() {
+    if (fileInput) fileInput.value = "";
 
-    function toggleMenu(btn) {
-        const menu = btn.nextElementSibling;
-        document.querySelectorAll('.message-menu').forEach(m => {
-            if (m !== menu) m.classList.remove('show');
-        });
-        if (menu) menu.classList.toggle('show');
+    if (previewContainer) {
+        previewContainer.style.display = "none";
     }
 
-    document.addEventListener('click', function(e) {
-        const clickedElement = e.target;
-        const isClickInsideMenu = clickedElement.closest('.message-menu');
-        const isClickOnMenuButton = clickedElement.classList.contains('message-menu-btn') || clickedElement.closest('.message-menu-btn');
-
-        if (!isClickOnMenuButton && !isClickInsideMenu) {
-            document.querySelectorAll('.message-menu.show').forEach(menu => {
-                menu.classList.remove('show');
-            });
-        }
-    });
-
-    // 7. اسکریپت باز کردن فایل (نسخه دیباگ شده)
-    function openFile(url, type, filename) {
-        const modal = document.getElementById('file-modal');
-        const container = document.getElementById('modal-media-container');
-        const info = document.getElementById('modal-info');
-        
-        if (!modal) {
-            console.error('Modal element not found!');
-            return;
-        }
-
-        container.innerHTML = '';
-        info.innerHTML = '';
-
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('show'), 10);
-
-        if (type === 'image') {
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = filename;
-            img.style.maxWidth = '100%';
-            img.style.maxHeight = '70vh';
-            img.style.borderRadius = '8px';
-            img.style.boxShadow = '0 4px 10px rgba(0,0,0,0.3)';
-            container.appendChild(img);
-            
-        } else if (type === 'video') {
-            const video = document.createElement('video');
-            video.src = url;
-            video.controls = true;
-            video.autoplay = true;
-            video.style.maxWidth = '100%';
-            video.style.maxHeight = '70vh';
-            video.style.borderRadius = '8px';
-            video.style.boxShadow = '0 4px 10px rgba(0,0,0,0.3)';
-            container.appendChild(video);
-            
-        } else {
-            const link = document.createElement('a');
-            link.href = url;
-            link.target = '_blank';
-            link.style.color = 'var(--tg-btn)';
-            link.style.fontSize = '16px';
-            link.style.textDecoration = 'none';
-            link.style.fontWeight = 'bold';
-            link.style.display = 'flex';
-            link.style.alignItems = 'center';
-            link.style.gap = '8px';
-            link.style.padding = '10px';
-            link.style.background = 'rgba(255,255,255,0.05)';
-            link.style.borderRadius = '8px';
-            link.style.marginTop = '10px';
-            
-            link.innerHTML = `
-                <span style="font-size: 20px;">📎</span>
-                <span>${filename}</span>
-            `;
-            
-            info.appendChild(link);
-        }
+    if (previewContent) {
+        previewContent.innerHTML = "";
     }
+}
 
-    function closeModal() {
-        const modal = document.getElementById('file-modal');
-        if (modal) {
-            modal.classList.remove('show');
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 300);
-            
-            const video = modal.querySelector('video');
-            if (video) {
-                video.pause();
-                video.currentTime = 0;
-            }
-        }
-    }
+fileInput?.addEventListener("change", () => {
+    showFilePreview(fileInput.files[0]);
+});
 
-    window.onclick = function(event) {
-        const modal = document.getElementById('file-modal');
-        if (event.target == modal) {
-            closeModal();
-        }
-    }
-
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            closeModal();
-        }
-    });
-
-    // 8. اسکرول خودکار به آخر چت
-    const chatBox = document.getElementById("chat-box");
-    if (chatBox) {
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-const form = document.getElementById("message-form");
+removeFileBtn?.addEventListener(
+    "click",
+    removeSelectedFile
+);
 
 
-// دریافت chat_id از آدرس صفحه
-const pathParts = window.location.pathname
-    .split("/")
-    .filter(Boolean);
+/* =========================
+   FILE HTML
+========================= */
 
-// برای آدرسی مثل /chat/chat/1/ مقدار 1 به دست می‌آید
-const chatId = pathParts[pathParts.length - 1];
+function createTemporaryFileHtml(file) {
+    if (!file) return "";
 
-// در HTTPS باید از wss و در localhost معمولاً از ws استفاده شود
-const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const url = URL.createObjectURL(file);
+    const type = file.type || "";
 
-const wsUrl = `${wsScheme}://${window.location.host}/ws/chat/${chatId}/`;
-
-console.log("WebSocket URL:", wsUrl);
-
-const chatSocket = new WebSocket(wsUrl);
-
-chatSocket.onopen = function () {
-    console.log("WebSocket connected:", wsUrl);
-};
-
-chatSocket.onerror = function (error) {
-    console.error("WebSocket error:", error);
-};
-
-chatSocket.onclose = function (event) {
-    console.error(
-        "WebSocket closed:",
-        event.code,
-        event.reason || "بدون توضیح"
-    );
-};
-
-
-console.log("FORM FOUND:", form);
-
-if (form) {
-
-    form.addEventListener("submit", async function (e) {
-
-        e.preventDefault();
-
-        const text =
-            document.getElementById("message-input")
-            .value
-            .trim();
-
-        const hasFile =
-            fileInput.files.length > 0;
-
-        if (!text && !hasFile) {
-            return;
-        }
-
-        const tempId =
-            "temp-" + Date.now();
-            let fileHtml = "";
-        let tempFileHtml = "";
-
-        if (hasFile) {
-
-            const file = fileInput.files[0];
-
-            if (file.type.startsWith("image/")) {
-
-                const previewUrl =
-                    URL.createObjectURL(file);
-
-                tempFileHtml = `
-                    <div class="message-media">
-                        <img src="${previewUrl}"
-                            class="message-image">
-                    </div>
-                `;
-
-            } else if (
-                file.type.startsWith("video/")
-            ) {
-
-                const previewUrl =
-                    URL.createObjectURL(file);
-
-                tempFileHtml = `
-                    <div class="message-media">
-                        <video class="message-video"
-                            controls>
-                            <source src="${previewUrl}">
-                        </video>
-                    </div>
-                `;
-
-            } else {
-
-                tempFileHtml = `
-                    <div class="file-attachment">
-                        📎 ${file.name}
-                    </div>
-                `;
-            }
-        }
-
-        // نمایش فوری پیام
-        chatBox.insertAdjacentHTML(
-            "beforeend",
-            `
-            <div id="${tempId}"
-                 class="message sent">
-
-                <button type="button"
-                        class="message-menu-btn"
-                        onclick="toggleMenu(this)">
-                    ⋮
-                </button>
-
-                <div class="message-menu">
-                    <button type="button">
-                        ویرایش
-                    </button>
-
-                    <button type="button">
-                        فوروارد
-                    </button>
-                </div>
-
-                <div class="message-text">
-                    ${text || ""}
-                </div>
-
-                ${tempFileHtml}
-
-                <div class="message-info">
-                    ⏳
-                </div>
-
+    if (type.startsWith("image/")) {
+        return `
+            <div class="message-media">
+                <img
+                    src="${url}"
+                    class="message-image"
+                    alt="${escapeHtml(file.name)}"
+                >
             </div>
-            `
-        );
+        `;
+    }
 
-        chatBox.scrollTop =
-            chatBox.scrollHeight;
+    if (type.startsWith("video/")) {
+        return `
+            <div class="message-media">
+                <video
+                    class="message-video"
+                    controls
+                >
+                    <source src="${url}">
+                </video>
+            </div>
+        `;
+    }
 
-        const formData =
-            new FormData(form);
-
-        try {
-
-            const response =
-                await fetch(
-                    window.location.href,
-                    {
-                        method: "POST",
-                        body: formData,
-                        headers: {
-                            "X-Requested-With":
-                                "XMLHttpRequest",
-                        },
-                    }
-                );
-
-            const data =
-                await response.json();
-
-            if (data.success) {
-
-                const tempMessage =
-                    document.getElementById(
-                        tempId
-                    );
-
-                tempMessage.id =
-                    `message-${data.message_id}`;
-
-                // منوی حذف را بعد از دریافت id واقعی اضافه می‌کنیم
-                tempMessage.querySelector(
-                    ".message-menu"
-                ).insertAdjacentHTML(
-                    "beforeend",
-                    `
-                    <button
-                        type="button"
-                        onclick="deleteForMe(${data.message_id})"
-                        style="color:red;">
-                        حذف برای من
-                    </button>
-                    `
-                );
-
-                tempMessage.querySelector(
-                    ".message-info"
-                ).innerHTML =
-                    `${data.time} ✓`;
-                previewContainer.style.display = "none";
-                previewContent.innerHTML = "";
-
-                form.reset();
-            }
-
-        } catch (error) {
-
-            const tempMessage =
-                document.getElementById(
-                    tempId
-                );
-
-            if (tempMessage) {
-
-                tempMessage.querySelector(
-                    ".message-info"
-                ).innerHTML = "❌";
-            }
-
-            console.error(error);
-        }
-    });
+    return `
+        <div class="file-attachment">
+            📎 ${escapeHtml(file.name)}
+        </div>
+    `;
 }
 
+function createFileHtml(fileUrl, fileName = "") {
+    if (!fileUrl) return "";
 
-chatSocket.onmessage = function (e) {
-
-    const data =
-        JSON.parse(e.data);
-
-let fileHtml = "";
-
-if (data.file_url) {
-
-    const ext = data.file_url
+    const extension = fileUrl
+        .split("?")[0]
         .split(".")
         .pop()
         .toLowerCase();
 
-    if (
-        ["jpg","jpeg","png","gif","webp"]
-        .includes(ext)
-    ) {
+    const imageExtensions = [
+        "jpg", "jpeg", "png", "gif",
+        "webp", "bmp", "svg"
+    ];
 
-        fileHtml = `
-            <div class="message-media">
-                <img
-                    src="${data.file_url}"
-                    class="message-image">
-            </div>
-        `;
+    const videoExtensions = [
+        "mp4", "webm", "mov",
+        "avi", "mkv"
+    ];
 
-    } else if (
-        ["mp4","mov","avi","mkv"]
-        .includes(ext)
-    ) {
+    if (imageExtensions.includes(extension)) {
+        const img = document.createElement("img");
 
-        fileHtml = `
+        img.src = fileUrl;
+        img.alt = fileName || "image";
+        img.className = "message-image";
+        img.loading = "lazy";
+
+        img.onclick = () => {
+            openFile(fileUrl, "image", fileName);
+        };
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "message-media";
+        wrapper.appendChild(img);
+
+        return wrapper.outerHTML;
+    }
+
+    if (videoExtensions.includes(extension)) {
+        return `
             <div class="message-media">
                 <video
                     class="message-video"
-                    controls>
-                    <source
-                        src="${data.file_url}">
+                    controls
+                    preload="metadata"
+                >
+                    <source src="${escapeHtml(fileUrl)}">
                 </video>
             </div>
         `;
+    }
 
-    } else {
+    return `
+        <div class="file-attachment">
+            <a
+                href="${escapeHtml(fileUrl)}"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                📎 ${escapeHtml(fileName || "فایل")}
+            </a>
+        </div>
+    `;
+}
 
-        fileHtml = `
-            <div class="file-attachment">
-                <a href="${data.file_url}"
-                   target="_blank">
-                   📎 ${data.file_name || "فایل"}
-                </a>
-            </div>
-        `;
+
+/* =========================
+   EMOJI
+========================= */
+
+function toggleEmojiPicker() {
+    const picker = document.getElementById("emoji-picker");
+
+    if (!picker) return;
+
+    picker.style.display =
+        picker.style.display === "none" ||
+        picker.style.display === ""
+            ? "block"
+            : "none";
+}
+
+function addEmoji(emoji) {
+    if (!messageInput) return;
+
+    const start =
+        messageInput.selectionStart ??
+        messageInput.value.length;
+
+    const end =
+        messageInput.selectionEnd ??
+        messageInput.value.length;
+
+    const value = messageInput.value;
+
+    messageInput.value =
+        value.slice(0, start) +
+        emoji +
+        value.slice(end);
+
+    messageInput.selectionStart =
+        messageInput.selectionEnd =
+        start + emoji.length;
+
+    messageInput.focus();
+    autoResizeTextarea();
+}
+
+document.addEventListener("click", event => {
+    const picker = document.getElementById("emoji-picker");
+
+    if (!picker) return;
+
+    const button = event.target.closest(".emoji-btn");
+
+    if (!button && !picker.contains(event.target)) {
+        picker.style.display = "none";
+    }
+});
+
+
+/* =========================
+   TEXTAREA
+========================= */
+
+function autoResizeTextarea() {
+    if (!messageInput) return;
+
+    messageInput.style.height = "auto";
+
+    const maxHeight = 140;
+
+    messageInput.style.height =
+        Math.min(
+            messageInput.scrollHeight,
+            maxHeight
+        ) + "px";
+
+    messageInput.style.overflowY =
+        messageInput.scrollHeight > maxHeight
+            ? "auto"
+            : "hidden";
+}
+
+messageInput?.addEventListener(
+    "input",
+    autoResizeTextarea
+);
+
+
+/* =========================
+   MESSAGE MENU
+========================= */
+
+function toggleMenu(button) {
+    const menu = button?.nextElementSibling;
+
+    if (!menu) return;
+
+    document
+        .querySelectorAll(".message-menu.show")
+        .forEach(item => {
+            if (item !== menu) {
+                item.classList.remove("show");
+            }
+        });
+
+    menu.classList.toggle("show");
+}
+
+document.addEventListener("click", event => {
+    if (
+        !event.target.closest(".message-menu") &&
+        !event.target.closest(".message-menu-btn")
+    ) {
+        document
+            .querySelectorAll(".message-menu.show")
+            .forEach(menu => {
+                menu.classList.remove("show");
+            });
+    }
+});
+
+
+/* =========================
+   DELETE FOR ME
+========================= */
+
+async function deleteForMe(messageId) {
+    if (!messageId) return;
+
+    try {
+        const response = await fetch(
+            `/chat/delete-for-me/${messageId}/`,
+            {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrftoken,
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            document
+                .getElementById(`message-${messageId}`)
+                ?.remove();
+        }
+
+    } catch (error) {
+        console.error("Delete error:", error);
     }
 }
 
-    // وضعیت تیک‌ها
-    if (data.type === "status") {
 
-        const message =
-            document.getElementById(
-                `message-${data.message_id}`
-            );
+/* =========================
+   FILE MODAL
+========================= */
 
-        if (message) {
+function openFile(url, type, filename = "") {
+    const modal = document.getElementById("file-modal");
+    const container = document.getElementById(
+        "modal-media-container"
+    );
+    const info = document.getElementById("modal-info");
 
-            const info =
-                message.querySelector(
-                    ".message-info"
-                );
+    if (!modal || !container || !info) return;
 
-            if (
-                data.status === "delivered"
-            ) {
+    container.innerHTML = "";
+    info.innerHTML = "";
 
-                info.innerHTML =
-                    info.innerHTML.replace(
-                        "✓",
-                        "✓✓"
-                    );
-            }
+    modal.style.display = "flex";
 
-            if (
-                data.status === "seen"
-            ) {
+    requestAnimationFrame(() => {
+        modal.classList.add("show");
+    });
 
-                info.innerHTML =
-                    info.innerHTML.replace(
-                        "✓✓",
-                        "👀"
-                    );
-            }
-        }
+    if (type === "image") {
+        const img = document.createElement("img");
 
+        img.src = url;
+        img.alt = filename;
+        img.style.maxWidth = "100%";
+        img.style.maxHeight = "70vh";
+        img.style.borderRadius = "8px";
+
+        container.appendChild(img);
         return;
     }
 
-    if (data.type !== "message") {
+    if (type === "video") {
+        const video = document.createElement("video");
+
+        video.src = url;
+        video.controls = true;
+        video.autoplay = true;
+
+        video.style.maxWidth = "100%";
+        video.style.maxHeight = "70vh";
+
+        container.appendChild(video);
         return;
     }
 
-    // پیام خودم دوباره نمایش داده نشود
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = `📎 ${filename || "فایل"}`;
+
+    info.appendChild(link);
+}
+
+function closeModal() {
+    const modal = document.getElementById("file-modal");
+
+    if (!modal) return;
+
+    const video = modal.querySelector("video");
+
+    if (video) {
+        video.pause();
+        video.currentTime = 0;
+    }
+
+    modal.classList.remove("show");
+
+    setTimeout(() => {
+        modal.style.display = "none";
+    }, 300);
+}
+
+document.addEventListener("click", event => {
+    const modal = document.getElementById("file-modal");
+
+    if (modal && event.target === modal) {
+        closeModal();
+    }
+});
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        closeModal();
+    }
+});
+
+
+/* =========================
+   WEBSOCKET
+========================= */
+
+const currentUserId = Number(window.CURRENT_USER_ID);
+
+
+function connectWebSocket() {
+    if (!chatId) return;
+
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${location.host}/ws/chat/${chatId}/`;
+
+    console.log("Connecting WebSocket:", wsUrl);
+
+    chatSocket = new WebSocket(wsUrl);
+
+    chatSocket.onopen = () => {
+        console.log("WebSocket connected");
+        markMessagesAsSeen();
+    };
+
+
+
+chatSocket.onmessage = event => {
+    console.log("RAW WS:", event.data);
+
+    let data;
+
+    try {
+        data = JSON.parse(event.data);
+    } catch (error) {
+        console.error("JSON PARSE ERROR:", error);
+        console.error("RAW DATA:", event.data);
+        return;
+    }
+
+    console.log("PARSED WS:", data);
+
+    try {
+        handleWebSocketMessage(data);
+    } catch (error) {
+        console.error("HANDLE WS ERROR:", error);
+        console.error("WS DATA THAT CAUSED ERROR:", data);
+    }
+};
+
+
+
+
+
+
+
+    chatSocket.onerror = error => {
+        console.error("WebSocket error:", error);
+    };
+
+    chatSocket.onclose = event => {
+        console.log("WebSocket closed:", event.code);
+
+        clearTimeout(reconnectTimer);
+
+        reconnectTimer = setTimeout(() => {
+            connectWebSocket();
+        }, 3000);
+    };
+}
+
+
+
+
+
+function addReceivedMessage(data) {
+    const messageId = `message-${data.message_id}`;
+
+    // جلوگیری از duplicate
+    if (document.getElementById(messageId)) return;
+
+    const chatBox =
+        document.querySelector("#chat-messages") ||
+        document.querySelector(".chat-messages") ||
+        document.querySelector("#messages");
+
+    if (!chatBox) {
+        console.error("Chat messages container not found");
+        return;
+    }
+
+    const isMine = Number(data.sender_id) === currentUserId;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = `message-wrapper ${isMine ? "sent" : "received"}`;
+    wrapper.id = messageId;
+
+    let html = "";
+
+    if (data.reply_to) {
+        html += `
+            <div class="reply-preview">
+                <div class="reply-text">
+                    ${escapeHtml(data.reply_to.message || "")}
+                </div>
+            </div>
+        `;
+    }
+
+    if (data.message) {
+        html += `
+            <div class="message-text">
+                ${escapeHtml(data.message)}
+            </div>
+        `;
+    }
+
+    if (data.file_url) {
+        html += createFileHtml(
+            data.file_url,
+            data.file_name || ""
+        );
+    }
+
+    html += `
+        <div class="message-info">
+            <span class="message-time">
+                ${escapeHtml(data.time || "")}
+            </span>
+            ${
+                isMine
+                ? `<span id="status-${data.message_id}" class="message-status">
+                    ${getStatusIcon(data.status)}
+                  </span>`
+                : ""
+            }
+        </div>
+    `;
+
+    wrapper.innerHTML = html;
+    chatBox.appendChild(wrapper);
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    bindMessageEvents(wrapper);
+}
+
+function getStatusIcon(status) {
+    switch (status) {
+        case "seen":
+            return "✓✓";
+        case "delivered":
+            return "✓✓";
+        case "sent":
+            return "✓";
+        default:
+            return "✓";
+    }
+}
+
+
+
+
+
+function markMessagesAsSeen() {
     if (
-        String(data.sender_id) ===
-        String(window.CURRENT_USER_ID)
+        chatSocket &&
+        chatSocket.readyState === WebSocket.OPEN
+    ) {
+        chatSocket.send(JSON.stringify({
+            type: "seen"
+        }));
+    }
+}
+
+function bindMessageEvents(messageElement) {
+    // اگر توابع قبلی پروژه را داری، اینجا وصلشان کن
+    const replyBtn = messageElement.querySelector(".reply-btn");
+    const deleteBtn = messageElement.querySelector(".delete-btn");
+
+    if (replyBtn && typeof setupReplyButton === "function") {
+        setupReplyButton(replyBtn, messageElement);
+    }
+
+    if (deleteBtn && typeof setupDeleteButton === "function") {
+        setupDeleteButton(deleteBtn, messageElement);
+    }
+}
+
+function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = value ?? "";
+    return div.innerHTML;
+}
+
+window.addEventListener("focus", markMessagesAsSeen);
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        markMessagesAsSeen();
+    }
+});
+
+connectWebSocket();
+
+
+
+/* =========================
+   WEBSOCKET MESSAGE
+========================= */
+
+
+function handleWebSocketMessage(data){
+    console.log("WS DATA:",data);
+
+    if(!data||typeof data!=="object"){
+        console.error("Invalid WebSocket data:",data);
+        return;
+    }
+
+    if(data.type==="status"){
+        console.log(
+            "STATUS UPDATE:",
+            data.message_id,
+            data.status
+        );
+
+        updateMessageStatus(
+            data.message_id,
+            data.status
+        );
+
+        return;
+    }
+
+    if(!data.message_id){
+        console.warn(
+            "WS message has no message_id:",
+            data
+        );
+        return;
+    }
+
+    if(Number(data.sender_id)===currentUserId){
+        return;
+    }
+
+    console.log("NEW MESSAGE RECEIVED:",data);
+
+    try{
+        addReceivedMessage(data);
+    }catch(error){
+        console.error(
+            "addReceivedMessage ERROR:",
+            error
+        );
+        console.error("MESSAGE DATA:",data);
+        return;
+    }
+
+    if(!document.hidden){
+        markMessagesAsSeen();
+    }
+}
+
+
+
+
+
+
+/* =========================
+   STATUS
+========================= */
+
+function updateMessageStatus(messageId,status){
+    console.log("UPDATE STATUS:",messageId,status);
+
+    if(!messageId){
+        console.warn("Missing messageId:",messageId);
+        return;
+    }
+
+    const el=document.getElementById(`status-${messageId}`);
+
+    if(!el){
+        console.warn("Status element not found:",messageId);
+        return;
+    }
+
+    if(status==="sending")
+        el.innerHTML="⏳";
+    else if(status==="sent")
+        el.innerHTML="✓";
+    else if(status==="delivered")
+        el.innerHTML="✓✓";
+    else if(status==="seen")
+        el.innerHTML='<span class="seen-status">✓✓</span>';
+}
+
+
+/* =========================
+   SEEN
+========================= */
+
+function markMessagesAsSeen() {
+    if (
+        !chatSocket ||
+        chatSocket.readyState !== WebSocket.OPEN
     ) {
         return;
     }
 
-let tempFileHtml = "";
+    chatSocket.send(
+        JSON.stringify({
+            type: "seen"
+        })
+    );
+}
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+        if (document.visibilityState === "visible") {
+            markMessagesAsSeen();
+        }
+    }
+);
 
 
-    // پیام طرف مقابل
-    chatBox.insertAdjacentHTML(
-        "beforeend",
-        `
-        <div id="message-${data.message_id}"
-             class="message received">
+/* =========================
+   ADD RECEIVED MESSAGE
+========================= */
 
-            <button type="button"
-                    class="message-menu-btn"
-                    onclick="toggleMenu(this)">
-                ⋮
-            </button>
+function addReceivedMessage(data){
+    const messageId=data.message_id;
 
-            <div class="message-menu">
+    if(!messageId||document.getElementById(`message-${messageId}`))
+        return;
 
-                <button type="button">
-                    فوروارد
-                </button>
+    if(!chatBox){
+        console.error("Chat box not found");
+        return;
+    }
 
-                <button
-                    type="button"
-                    onclick="deleteForMe(${data.message_id})"
-                    style="color:red;">
-                    حذف برای من
-                </button>
+    const messageElement=document.createElement("div");
 
+    messageElement.id=`message-${messageId}`;
+    messageElement.className="message received";
+
+    // ریپلای دریافتی
+    const replyHtml=data.reply_to
+        ?`
+            <div class="reply-box">
+                <small>پاسخ به:</small>
+                <div>
+                    ${escapeHtml(data.reply_to.message||"")}
+                </div>
             </div>
+        `
+        :"";
 
+    const fileHtml=data.file_url
+        ?createFileHtml(
+            data.file_url,
+            data.file_name||""
+        )
+        :"";
+
+    const textHtml=data.message
+        ?`
             <div class="message-text">
-                ${data.message || ""}
+                ${escapeHtml(data.message)}
             </div>
-
-            ${fileHtml}
-
-            <div class="message-info">
-                ${data.time}
-            </div>
-
-        </div>
         `
+        :"";
+
+    messageElement.innerHTML=`
+        <button
+            type="button"
+            class="message-menu-btn"
+        >⋮</button>
+
+        <div class="message-menu">
+            <button
+                type="button"
+                class="reply-button"
+            >پاسخ</button>
+
+            <button
+                type="button"
+                class="forward-button"
+            >فوروارد</button>
+
+            <button
+                type="button"
+                class="delete-for-me-button"
+                style="color:red"
+            >حذف برای من</button>
+        </div>
+
+        ${replyHtml}
+        ${fileHtml}
+        ${textHtml}
+
+        <div class="message-info">
+            <span class="message-time">
+                ${escapeHtml(data.time||"")}
+            </span>
+        </div>
+    `;
+
+    const menuButton=messageElement.querySelector(
+        ".message-menu-btn"
     );
 
+    menuButton?.addEventListener("click",event=>{
+        event.stopPropagation();
+        toggleMenu(menuButton);
+    });
 
-    chatBox.scrollTop =
-        chatBox.scrollHeight;
-};
+    const replyButton=messageElement.querySelector(
+        ".reply-button"
+    );
 
+    replyButton?.addEventListener("click",()=>{
+        replyToMessage(
+            messageId,
+            data.message||""
+        );
+    });
+
+    const deleteButton=messageElement.querySelector(
+        ".delete-for-me-button"
+    );
+
+    deleteButton?.addEventListener("click",()=>{
+        deleteForMe(messageId);
+    });
+
+    chatBox.appendChild(messageElement);
+
+    scrollToBottom(true);
+}
+
+
+
+
+/* =========================
+   TEMP MESSAGE
+========================= */
+
+function createSentMessageHtml(tempId,text,replyHtml,fileHtml){
+    return `
+        <div id="${tempId}" class="message sent">
+            <button type="button" class="message-menu-btn">⋮</button>
+
+            <div class="message-menu">
+                <button type="button"
+                        class="delete-temp-button"
+                        style="color:red">
+                    حذف
+                </button>
+            </div>
+
+            ${replyHtml}
+            ${fileHtml}
+
+            ${text?`
+                <div class="message-text">
+                    ${escapeHtml(text)}
+                </div>
+            `:""}
+
+            <div class="message-info">
+                <span class="message-time">
+                    ${getCurrentTime()}
+                </span>
+
+                <span class="message-status"
+                      data-temp-status="${tempId}">✓</span>
+            </div>
+        </div>
+    `;
+}
+
+
+
+function getCurrentTime() {
+    const now = new Date();
+
+    return now.toLocaleTimeString(
+        "fa-IR",
+        {
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+}
+
+
+/* =========================
+   SEND MESSAGE
+========================= */
+
+form?.addEventListener("submit",async event=>{
+    event.preventDefault();
+
+    const text=messageInput?.value.trim()||"";
+    const file=fileInput?.files?.length?fileInput.files[0]:null;
+    if(!text&&!file)return;
+
+    const sendingReplyId=currentReplyId;
+    const sendingReplyText=replyText?.textContent||"";
+    const tempId="temp-"+Date.now();
+
+    const replyHtml=sendingReplyId
+        ?createReplyHtml(sendingReplyText):"";
+    const fileHtml=file
+        ?createTemporaryFileHtml(file):"";
+
+    chatBox?.insertAdjacentHTML(
+        "beforeend",
+        createSentMessageHtml(tempId,text,replyHtml,fileHtml)
+    );
+    scrollToBottom(true);
+
+    const formData=new FormData(form);
+
+    if(sendingReplyId)
+        formData.set("reply_to",sendingReplyId);
+    else
+        formData.delete("reply_to");
+
+    try{
+        const response=await fetch(window.location.href,{
+            method:"POST",
+            body:formData,
+            headers:{
+                "X-Requested-With":"XMLHttpRequest",
+                "X-CSRFToken":csrftoken
+            }
+        });
+
+        if(!response.ok)
+            throw new Error(`HTTP ${response.status}`);
+
+        const data=await response.json();
+
+        if(!data.success)
+            throw new Error(data.error||"خطا در ارسال پیام");
+
+        const tempMessage=document.getElementById(tempId);
+
+        if(tempMessage){
+            tempMessage.id=`message-${data.message_id}`;
+
+            const serverReplyHtml=data.reply_to_id
+                ?createReplyHtml(
+                    data.reply_text||sendingReplyText||""
+                ):"";
+
+            const serverFileHtml=data.file_url
+                ?createFileHtml(
+                    data.file_url,
+                    data.file_name||""
+                ):"";
+
+            const textHtml=data.content
+                ?`<div class="message-text">${escapeHtml(data.content)}</div>`
+                :"";
+
+            tempMessage.innerHTML=`
+                <button type="button" class="message-menu-btn">⋮</button>
+
+                <div class="message-menu">
+                    <button type="button" class="reply-button">پاسخ</button>
+                    <button type="button"
+                            class="delete-for-me-button"
+                            style="color:red">
+                        حذف برای من
+                    </button>
+                </div>
+
+                ${serverReplyHtml}
+                ${serverFileHtml}
+                ${textHtml}
+
+                <div class="message-info">
+                    <span class="message-time">
+                        ${escapeHtml(data.time||getCurrentTime())}
+                    </span>
+
+                    <span class="message-status"
+                          id="status-${data.message_id}">
+                        ✓
+                    </span>
+                </div>
+            `;
+
+            const menuButton=tempMessage.querySelector(
+                ".message-menu-btn"
+            );
+
+            menuButton?.addEventListener("click",event=>{
+                event.stopPropagation();
+                toggleMenu(menuButton);
+            });
+
+            const replyButton=tempMessage.querySelector(
+                ".reply-button"
+            );
+
+            replyButton?.addEventListener("click",()=>{
+                replyToMessage(
+                    data.message_id,
+                    data.content||""
+                );
+            });
+
+            const deleteButton=tempMessage.querySelector(
+                ".delete-for-me-button"
+            );
+
+            deleteButton?.addEventListener("click",()=>{
+                deleteForMe(data.message_id);
+            });
+
+
+            // اطلاع به WebSocket
+            if(chatSocket&&chatSocket.readyState===WebSocket.OPEN){
+                chatSocket.send(JSON.stringify({
+                    message_id:data.message_id
+                }));
+            }
+        }
+
+        form.reset();
+        removeSelectedFile();
+        cancelReply();
+
+        if(messageInput){
+            messageInput.style.height="auto";
+            messageInput.style.overflowY="hidden";
+        }
+
+        const picker=document.getElementById("emoji-picker");
+        if(picker)
+            picker.style.display="none";
+
+        scrollToBottom(false);
+
+    }catch(error){
+        console.error("Send message error:",error);
+
+        const tempMessage=document.getElementById(tempId);
+
+        if(tempMessage){
+            const status=tempMessage.querySelector(".message-status");
+            if(status)status.textContent="❌";
+        }
+    }
+});
+
+
+
+
+/* =========================
+   ENTER
+========================= */
+
+messageInput?.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key === "Enter" &&
+            !event.shiftKey
+        ) {
+            event.preventDefault();
+            form?.requestSubmit();
+        }
+    }
+);
+
+
+/* =========================
+   INITIAL
+========================= */
+
+function initialChatScroll() {
+    scrollToBottom(false);
+
+    setTimeout(
+        () => scrollToBottom(false),
+        100
+    );
+
+    setTimeout(
+        () => scrollToBottom(false),
+        500
+    );
+
+    setTimeout(
+        () => markMessagesAsSeen(),
+        700
+    );
+}
+
+window.addEventListener(
+    "load",
+    initialChatScroll
+);
+
+
+/* =========================
+   DEBUG
+========================= */
+
+console.log("Chat initialized", {
+    chatId,
+    currentUserId: window.CURRENT_USER_ID,
+    wsUrl,
+    chatBox: !!chatBox,
+    form: !!form,
+    messageInput: !!messageInput,
+    fileInput: !!fileInput,
+    websocket: !!chatSocket
+});
 </script>
+
 
 </body>
 </html>
