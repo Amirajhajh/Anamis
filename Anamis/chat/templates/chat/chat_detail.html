@@ -5,7 +5,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="{% static 'css/chat_page.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'css/chat_page.css' %}?v=4">
 <style>
 .emoji-btn{width:40px;height:40px;border:0;border-radius:50%;background:#fff;color:#8fd3ff;font-size:20px;cursor:pointer;transition:.2s}
 .emoji-btn:hover{background:#2ea6ff;color:#fff}.emoji-btn:active{transform:scale(.95)}
@@ -151,6 +151,7 @@
 <script>
 const CHAT_ID="{{ chat.id }}";
 const CURRENT_USER_ID=Number("{{ request.user.id }}");
+
 const chatBox=document.getElementById("chat-box");
 const form=document.getElementById("message-form");
 const messageInput=document.getElementById("message-input");
@@ -158,32 +159,54 @@ const fileInput=document.getElementById("file-upload");
 const previewContainer=document.getElementById("file-preview-container");
 const previewContent=document.getElementById("preview-content");
 const removeFileBtn=document.getElementById("remove-file");
+
 const replyPreview=document.getElementById("reply-preview");
 const replyText=document.getElementById("reply-text");
 const replyToId=document.getElementById("reply-to-id");
+
 const wsScheme=location.protocol==="https:"?"wss":"ws";
 const wsUrl=`${wsScheme}://${location.host}/ws/chat/${CHAT_ID}/`;
-let chatSocket=null,reconnectTimer=null,currentReplyId=null;
+
+let chatSocket=null;
+let reconnectTimer=null;
+let currentReplyId=null;
 
 function escapeHtml(v){
-return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+return String(v??"")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
 }
 
 function getCookie(name){
-const c=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith(name+"="));
+const c=document.cookie.split(";").map(x=>x.trim())
+.find(x=>x.startsWith(name+"="));
 return c?decodeURIComponent(c.substring(name.length+1)):null;
 }
+
 const csrftoken=getCookie("csrftoken");
 
 function scrollBottom(smooth=false){
-requestAnimationFrame(()=>chatBox?.scrollTo({top:chatBox.scrollHeight,behavior:smooth?"smooth":"auto"}));
+requestAnimationFrame(()=>{
+chatBox?.scrollTo({
+top:chatBox.scrollHeight,
+behavior:smooth?"smooth":"auto"
+});
+});
 }
 
 function getTime(){
-return new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"});
+return new Date().toLocaleTimeString("fa-IR",{
+hour:"2-digit",
+minute:"2-digit"
+});
 }
 
-/* REPLY */
+
+/* ================= REPLY ================= */
+
 function replyToMessage(id,text=""){
 currentReplyId=String(id);
 replyToId.value=currentReplyId;
@@ -200,8 +223,10 @@ replyPreview.classList.remove("show");
 }
 
 function createReplyHtml(text){
-if(!text)return "";
-return `<div class="message-reply">
+text=text||"فایل";
+
+return `
+<div class="message-reply">
 <div class="message-reply-line"></div>
 <div class="message-reply-content">
 <div class="message-reply-title">پاسخ به</div>
@@ -210,25 +235,37 @@ return `<div class="message-reply">
 </div>`;
 }
 
-/* FILE */
+
+/* ================= FILE ================= */
+
 function showFilePreview(file){
 if(!file)return removeSelectedFile();
+
 previewContent.innerHTML="";
+
 if(file.type.startsWith("image/")||file.type.startsWith("video/")){
 const reader=new FileReader();
+
 reader.onload=e=>{
-const el=document.createElement(file.type.startsWith("image/")?"img":"video");
+const el=document.createElement(
+file.type.startsWith("image/")?"img":"video"
+);
+
 el.src=e.target.result;
 el.style.maxWidth="200px";
 el.style.maxHeight="150px";
 el.style.borderRadius="8px";
+
 if(el.tagName==="VIDEO")el.controls=true;
+
 previewContent.appendChild(el);
 };
+
 reader.readAsDataURL(file);
 }else{
 previewContent.textContent="📎 "+file.name;
 }
+
 previewContainer.style.display="block";
 }
 
@@ -238,216 +275,284 @@ previewContent.innerHTML="";
 previewContainer.style.display="none";
 }
 
-fileInput?.addEventListener("change",()=>showFilePreview(fileInput.files[0]));
+fileInput?.addEventListener("change",()=>{
+showFilePreview(fileInput.files[0]);
+});
+
 removeFileBtn?.addEventListener("click",removeSelectedFile);
 
 function createTemporaryFileHtml(file){
 if(!file)return "";
+
 const url=URL.createObjectURL(file);
-if(file.type.startsWith("image/"))
-return `<div class="message-media"><img src="${url}" class="message-image" alt="${escapeHtml(file.name)}"></div>`;
-if(file.type.startsWith("video/"))
-return `<div class="message-media"><video class="message-video" controls><source src="${url}"></video></div>`;
+
+if(file.type.startsWith("image/")){
+return `
+<div class="message-media">
+<img src="${url}" class="message-image"
+alt="${escapeHtml(file.name)}">
+</div>`;
+}
+
+if(file.type.startsWith("video/")){
+return `
+<div class="message-media">
+<video class="message-video" controls>
+<source src="${url}">
+</video>
+</div>`;
+}
+
 return `<div class="file-attachment">📎 ${escapeHtml(file.name)}</div>`;
 }
 
 function createFileHtml(url,name=""){
 if(!url)return "";
+
 const ext=url.split("?")[0].split(".").pop().toLowerCase();
+
 const images=["jpg","jpeg","png","gif","webp","bmp","svg"];
 const videos=["mp4","webm","mov","avi","mkv"];
 
-if(images.includes(ext))
-return `<div class="message-media">
-<img src="${escapeHtml(url)}" class="message-image" loading="lazy" alt="${escapeHtml(name)}" onclick="openFile('${escapeHtml(url)}','image','${escapeHtml(name)}')">
+if(images.includes(ext)){
+return `
+<div class="message-media">
+<img src="${escapeHtml(url)}"
+class="message-image"
+loading="lazy"
+alt="${escapeHtml(name)}"
+onclick="openFile('${escapeHtml(url)}','image','${escapeHtml(name)}')">
 </div>`;
-
-if(videos.includes(ext))
-return `<div class="message-media"><video class="message-video" controls preload="metadata"><source src="${escapeHtml(url)}"></video></div>`;
-
-return `<div class="file-attachment"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">📎 ${escapeHtml(name||"فایل")}</a></div>`;
 }
 
-/* EMOJI */
+if(videos.includes(ext)){
+return `
+<div class="message-media">
+<video class="message-video" controls preload="metadata">
+<source src="${escapeHtml(url)}">
+</video>
+</div>`;
+}
+
+return `
+<div class="file-attachment">
+<a href="${escapeHtml(url)}"
+target="_blank"
+rel="noopener">
+📎 ${escapeHtml(name||"فایل")}
+</a>
+</div>`;
+}
+
+
+/* ================= MENU ================= */
+
+function closeAllMenus(){
+document.querySelectorAll(".message-menu.show").forEach(menu=>{
+menu.classList.remove("show");
+menu.style.left="";
+menu.style.top="";
+});
+}
+
+function toggleMenu(btn){
+const message=btn.closest(".message");
+const menu=message?.querySelector(".message-menu");
+
+if(!menu)return;
+
+const alreadyOpen=menu.classList.contains("show");
+
+closeAllMenus();
+
+if(alreadyOpen)return;
+
+menu.classList.add("show");
+
+const rect=btn.getBoundingClientRect();
+const menuWidth=menu.offsetWidth;
+const menuHeight=menu.offsetHeight;
+const gap=6;
+const padding=8;
+
+let left=rect.left;
+let top=rect.bottom+gap;
+
+if(left+menuWidth>window.innerWidth-padding){
+left=window.innerWidth-menuWidth-padding;
+}
+
+if(left<padding){
+left=padding;
+}
+
+if(top+menuHeight>window.innerHeight-padding){
+top=rect.top-menuHeight-gap;
+}
+
+if(top<padding){
+top=padding;
+}
+
+menu.style.left=`${left}px`;
+menu.style.top=`${top}px`;
+}
+
+document.addEventListener("click",e=>{
+if(e.target.closest(".message-menu-btn"))return;
+if(e.target.closest(".message-menu"))return;
+closeAllMenus();
+});
+
+window.addEventListener("resize",closeAllMenus);
+
+chatBox?.addEventListener("scroll",closeAllMenus);
+
+
+/* ================= DELETE ================= */
+
+async function deleteForMe(id){
+try{
+const r=await fetch(`/chat/delete-for-me/${id}/`,{
+method:"POST",
+headers:{
+"X-CSRFToken":csrftoken,
+"X-Requested-With":"XMLHttpRequest"
+}
+});
+
+const data=await r.json();
+
+if(r.ok&&data.success){
+document.getElementById(`message-${id}`)?.remove();
+}
+}catch(e){
+console.error("Delete:",e);
+}
+}
+
+
+/* ================= EMOJI ================= */
+
 function toggleEmojiPicker(){
-const p=document.getElementById("emoji-picker");
-p.classList.toggle("show");
+document.getElementById("emoji-picker")?.classList.toggle("show");
 }
 
 function addEmoji(emoji){
-const s=messageInput.selectionStart,e=messageInput.selectionEnd,v=messageInput.value;
+const s=messageInput.selectionStart;
+const e=messageInput.selectionEnd;
+const v=messageInput.value;
+
 messageInput.value=v.slice(0,s)+emoji+v.slice(e);
-messageInput.selectionStart=messageInput.selectionEnd=s+emoji.length;
+messageInput.selectionStart=
+messageInput.selectionEnd=s+emoji.length;
+
 messageInput.focus();
 autoResize();
 }
 
 document.addEventListener("click",e=>{
 const p=document.getElementById("emoji-picker");
-if(p&&!e.target.closest(".emoji-btn")&&!p.contains(e.target))p.classList.remove("show");
+
+if(p&&!e.target.closest(".emoji-btn")&&!p.contains(e.target)){
+p.classList.remove("show");
+}
 });
 
-/* TEXTAREA */
+
+/* ================= TEXTAREA ================= */
+
 function autoResize(){
 messageInput.style.height="auto";
+
 const max=140;
-messageInput.style.height=Math.min(messageInput.scrollHeight,max)+"px";
-messageInput.style.overflowY=messageInput.scrollHeight>max?"auto":"hidden";
+
+messageInput.style.height=
+Math.min(messageInput.scrollHeight,max)+"px";
+
+messageInput.style.overflowY=
+messageInput.scrollHeight>max?"auto":"hidden";
 }
+
 messageInput?.addEventListener("input",autoResize);
 
-/* MENU */
 
-function toggleMenu(btn){
-    const menu=btn.parentElement.querySelector(".message-menu");
-    if(!menu)return;
+/* ================= MESSAGE HTML ================= */
 
-    document.querySelectorAll(".message-menu.show").forEach(m=>{
-        if(m!==menu)m.classList.remove("show");
-    });
+function createMessageHtml(data,cls="received"){
+const replyHtml=data.reply_to
+?createReplyHtml(data.reply_to.message||"فایل")
+:"";
 
-    if(menu.classList.contains("show")){
-        menu.classList.remove("show");
-        return;
-    }
+const fileHtml=data.file_url
+?createFileHtml(data.file_url,data.file_name||"")
+:"";
 
-    menu.classList.add("show");
+const text=data.content??data.message??"";
 
-    const rect=btn.getBoundingClientRect();
-    const menuWidth=menu.offsetWidth;
-    const menuHeight=menu.offsetHeight;
-    const gap=6;
-    const padding=8;
+const textHtml=text
+?`<div class="message-text">${escapeHtml(text)}</div>`
+:"";
 
-    let left=rect.left;
-    let top=rect.bottom+gap;
+const status=cls==="sent"
+?`
+<span class="message-status"
+id="status-${data.message_id}">
+${data.status==="seen"
+?'<span class="seen-status">✓✓</span>'
+:data.status==="delivered"
+?"✓✓"
+:"✓"}
+</span>`
+:"";
 
-    /* راست */
-    if(left+menuWidth>window.innerWidth-padding){
-        left=window.innerWidth-menuWidth-padding;
-    }
+return `
+<button type="button"
+class="message-menu-btn"
+onclick="toggleMenu(this)">⋮</button>
 
-    /* چپ */
-    if(left<padding){
-        left=padding;
-    }
+<div class="message-menu">
+<button type="button"
+class="reply-button">ریپلای</button>
 
-    /* پایین */
-    if(top+menuHeight>window.innerHeight-padding){
-        top=rect.top-menuHeight-gap;
-    }
+${cls==="sent"
+?`<button type="button">ویرایش</button>`
+:""}
 
-    /* بالا */
-    if(top<padding){
-        top=padding;
-    }
+<button type="button">فوروارد</button>
 
-    menu.style.left=left+"px";
-    menu.style.top=top+"px";
+<button type="button"
+class="delete-for-me-button"
+style="color:red">
+حذف برای من
+</button>
+
+${cls==="sent"
+?`<a href="/chat/delete/${data.message_id}/"
+style="color:red">
+حذف
+</a>`
+:""}
+</div>
+
+${replyHtml}
+${fileHtml}
+${textHtml}
+
+<div class="message-info">
+<span class="message-time">
+${escapeHtml(data.time||getTime())}
+</span>
+${status}
+</div>`;
 }
 
-document.addEventListener("click",function(e){
-    if(e.target.closest(".message-menu-btn"))return;
-    if(e.target.closest(".message-menu"))return;
 
-    document.querySelectorAll(".message-menu.show").forEach(menu=>{
-        menu.classList.remove("show");
-    });
-});
+/* ================= WEBSOCKET ================= */
 
-window.addEventListener("resize",function(){
-    document.querySelectorAll(".message-menu.show").forEach(menu=>{
-        menu.classList.remove("show");
-    });
-});
-
-document.querySelector("#chat-box")?.addEventListener("scroll",function(){
-    document.querySelectorAll(".message-menu.show").forEach(menu=>{
-        menu.classList.remove("show");
-    });
-});
-
-document.addEventListener("click",function(e){
-    if(e.target.closest(".message-menu-btn"))return;
-    if(e.target.closest(".message-menu"))return;
-
-    document.querySelectorAll(".message-menu.show").forEach(menu=>{
-        menu.classList.remove("show","menu-up");
-    });
-});
-
-
-document.addEventListener("click",e=>{
-    if(!e.target.closest(".message-menu")&&!e.target.closest(".message-menu-btn"))
-        document.querySelectorAll(".message-menu.show").forEach(m=>{
-            m.classList.remove("show","menu-up","menu-left");
-            m.style.left="";
-            m.style.right="";
-        });
-});
-
-
-document.addEventListener("click",e=>{
-if(!e.target.closest(".message-menu")&&!e.target.closest(".message-menu-btn"))
-document.querySelectorAll(".message-menu.show").forEach(x=>x.classList.remove("show"));
-});
-
-/* DELETE */
-async function deleteForMe(id){
-try{
-const r=await fetch(`/chat/delete-for-me/${id}/`,{
-method:"POST",
-headers:{"X-CSRFToken":csrftoken,"X-Requested-With":"XMLHttpRequest"}
-});
-const data=await r.json();
-if(r.ok&&data.success)document.getElementById(`message-${id}`)?.remove();
-}catch(e){console.error("Delete:",e)}
-}
-
-/* MODAL */
-function openFile(url,type,name=""){
-const modal=document.getElementById("file-modal");
-const container=document.getElementById("modal-media-container");
-const info=document.getElementById("modal-info");
-container.innerHTML="";
-info.textContent=name||"";
-
-if(type==="image"){
-const img=document.createElement("img");
-img.src=url;
-img.alt=name;
-container.appendChild(img);
-}
-else if(type==="video"){
-const video=document.createElement("video");
-video.src=url;
-video.controls=true;
-video.autoplay=true;
-container.appendChild(video);
-}
-modal.style.display="flex";
-requestAnimationFrame(()=>modal.classList.add("show"));
-}
-
-function closeModal(){
-const modal=document.getElementById("file-modal");
-modal.querySelector("video")?.pause();
-modal.classList.remove("show");
-setTimeout(()=>modal.style.display="none",300);
-}
-
-document.addEventListener("click",e=>{
-const modal=document.getElementById("file-modal");
-if(e.target===modal)closeModal();
-});
-
-document.addEventListener("keydown",e=>{
-if(e.key==="Escape")closeModal();
-});
-
-/* WEBSOCKET */
 function connectWebSocket(){
 if(!CHAT_ID)return;
+
 chatSocket=new WebSocket(wsUrl);
 
 chatSocket.onopen=()=>{
@@ -456,27 +561,46 @@ markSeen();
 };
 
 chatSocket.onmessage=e=>{
-try{handleWS(JSON.parse(e.data))}
-catch(err){console.error("WS:",err)}
+try{
+handleWS(JSON.parse(e.data));
+}catch(err){
+console.error("WS:",err);
+}
 };
 
-chatSocket.onerror=e=>console.error("WebSocket error:",e);
+chatSocket.onerror=e=>{
+console.error("WebSocket error:",e);
+};
 
 chatSocket.onclose=()=>{
 clearTimeout(reconnectTimer);
-reconnectTimer=setTimeout(connectWebSocket,3000);
+
+reconnectTimer=setTimeout(
+connectWebSocket,
+3000
+);
 };
 }
 
 function markSeen(){
-if(chatSocket?.readyState===WebSocket.OPEN)
+if(chatSocket?.readyState===WebSocket.OPEN){
 chatSocket.send(JSON.stringify({type:"seen"}));
+}
 }
 
 function updateStatus(id,status){
 const el=document.getElementById(`status-${id}`);
+
 if(!el)return;
-el.innerHTML=status==="seen"?'<span class="seen-status">✓✓</span>':status==="delivered"?"✓✓":status==="sending"?"⏳":"✓";
+
+el.innerHTML=
+status==="seen"
+?'<span class="seen-status">✓✓</span>'
+:status==="delivered"
+?"✓✓"
+:status==="sending"
+?"⏳"
+:"✓";
 }
 
 function handleWS(data){
@@ -484,153 +608,293 @@ if(data.type==="status"){
 updateStatus(data.message_id,data.status);
 return;
 }
-if(!data.message_id||Number(data.sender_id)===CURRENT_USER_ID)return;
-addReceivedMessage(data);
-if(!document.hidden)markSeen();
+
+if(!data.message_id)return;
+
+/*
+پیام خودمان را دوباره از WebSocket نساز.
+چون پیام خودمان قبلاً توسط POST ساخته شده.
+*/
+if(Number(data.sender_id)===CURRENT_USER_ID){
+return;
 }
+
+addReceivedMessage(data);
+
+if(!document.hidden){
+markSeen();
+}
+}
+
+
+/* ================= RECEIVED ================= */
 
 function addReceivedMessage(data){
 const id=data.message_id;
-if(document.getElementById(`message-${id}`))return;
+
+if(document.getElementById(`message-${id}`)){
+return;
+}
 
 const el=document.createElement("div");
+
 el.id=`message-${id}`;
 el.className="message received";
 
-const replyHtml=data.reply_to?createReplyHtml(data.reply_to.message||"فایل"):"";
-const fileHtml=data.file_url?createFileHtml(data.file_url,data.file_name||""):"";
-const textHtml=data.message?`<div class="message-text">${escapeHtml(data.message)}</div>`:"";
+el.innerHTML=createMessageHtml(data,"received");
 
-el.innerHTML=`
-<button type="button" class="message-menu-btn">⋮</button>
-<div class="message-menu">
-<button type="button" class="reply-button">ریپلای</button>
-<button type="button">فوروارد</button>
-<button type="button" class="delete-for-me-button" style="color:red">حذف برای من</button>
-</div>
-${replyHtml}${fileHtml}${textHtml}
-<div class="message-info"><span class="message-time">${escapeHtml(data.time||"")}</span></div>`;
+const replyBtn=el.querySelector(".reply-button");
+const deleteBtn=el.querySelector(".delete-for-me-button");
 
-el.querySelector(".message-menu-btn").onclick=e=>{
-e.stopPropagation();toggleMenu(e.currentTarget);
-};
+replyBtn?.addEventListener("click",e=>{
+e.stopPropagation();
 
-el.querySelector(".reply-button").onclick=()=>{
-replyToMessage(id,data.message||"فایل");
-};
+replyToMessage(
+id,
+data.message||data.content||"فایل"
+);
 
-el.querySelector(".delete-for-me-button").onclick=()=>deleteForMe(id);
+closeAllMenus();
+});
+
+deleteBtn?.addEventListener("click",e=>{
+e.stopPropagation();
+deleteForMe(id);
+closeAllMenus();
+});
 
 chatBox.appendChild(el);
+
 scrollBottom(true);
 }
 
-/* SENT MESSAGE */
-function createSentMessage(tempId,text,replyHtml,fileHtml){
-return `<div id="${tempId}" class="message sent">
-<button type="button" class="message-menu-btn">⋮</button>
+
+/* ================= SEND ================= */
+
+function createTemporaryMessage(tempId,text,replyHtml,fileHtml){
+return `
+<div id="${tempId}" class="message sent">
+
+<button type="button"
+class="message-menu-btn">⋮</button>
+
 <div class="message-menu">
-<button type="button" class="delete-temp-button" style="color:red">حذف</button>
+<button type="button"
+class="delete-temp-button"
+style="color:red">
+حذف
+</button>
 </div>
-${replyHtml}${fileHtml}
-${text?`<div class="message-text">${escapeHtml(text)}</div>`:""}
+
+${replyHtml}
+${fileHtml}
+
+${text
+?`<div class="message-text">
+${escapeHtml(text)}
+</div>`
+:""}
+
 <div class="message-info">
 <span class="message-time">${getTime()}</span>
-<span class="message-status">✓</span>
+<span class="message-status">⏳</span>
 </div>
+
 </div>`;
 }
 
-/* SEND */
 form?.addEventListener("submit",async e=>{
 e.preventDefault();
 
 const text=messageInput.value.trim();
 const file=fileInput.files[0]||null;
+
 if(!text&&!file)return;
 
 const replyId=currentReplyId;
 const replyMsg=replyText.textContent;
+
 const tempId="temp-"+Date.now();
 
-const replyHtml=replyId?createReplyHtml(replyMsg):"";
-const fileHtml=file?createTemporaryFileHtml(file):"";
+const replyHtml=
+replyId
+?createReplyHtml(replyMsg)
+:"";
 
-chatBox.insertAdjacentHTML("beforeend",createSentMessage(tempId,text,replyHtml,fileHtml));
+const fileHtml=
+file
+?createTemporaryFileHtml(file)
+:"";
+
+
+/*
+اول پیام را فوراً در صفحه نشان بده
+*/
+chatBox.insertAdjacentHTML(
+"beforeend",
+createTemporaryMessage(
+tempId,
+text,
+replyHtml,
+fileHtml
+)
+);
+
 scrollBottom(true);
 
-const tempMessage=document.getElementById(tempId);
-const menuBtn=tempMessage?.querySelector(".message-menu-btn");
-menuBtn?.addEventListener("click",e=>{
-e.stopPropagation();toggleMenu(menuBtn);
+const tempMessage=
+document.getElementById(tempId);
+
+const tempMenuBtn=
+tempMessage?.querySelector(".message-menu-btn");
+
+tempMenuBtn?.addEventListener("click",e=>{
+e.stopPropagation();
+toggleMenu(tempMenuBtn);
 });
 
 const dataForm=new FormData(form);
-if(replyId)dataForm.set("reply_to",replyId);
-else dataForm.delete("reply_to");
+
+if(replyId){
+dataForm.set("reply_to",replyId);
+}else{
+dataForm.delete("reply_to");
+}
 
 try{
+
 const response=await fetch(location.href,{
 method:"POST",
 body:dataForm,
-headers:{"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrftoken}
+headers:{
+"X-Requested-With":"XMLHttpRequest",
+"X-CSRFToken":csrftoken
+}
 });
 
-if(!response.ok)throw new Error("HTTP "+response.status);
+if(!response.ok){
+throw new Error("HTTP "+response.status);
+}
 
 const data=await response.json();
-if(!data.success)throw new Error(data.error||"خطا در ارسال");
 
+if(!data.success){
+throw new Error(data.error||"خطا در ارسال");
+}
+
+
+/*
+پیام موقت را با اطلاعات واقعی دیتابیس جایگزین کن
+*/
 if(tempMessage){
+
 tempMessage.id=`message-${data.message_id}`;
 
-const serverReply=data.reply_to?createReplyHtml(data.reply_to.message||"فایل"):"";
-const serverFile=data.file_url?createFileHtml(data.file_url,data.file_name||""):"";
-const serverText=data.content?`<div class="message-text">${escapeHtml(data.content)}</div>`:"";
-
-tempMessage.innerHTML=`
-<button type="button" class="message-menu-btn">⋮</button>
-<div class="message-menu">
-<button type="button" class="reply-button">ریپلای</button>
-<button type="button" class="delete-for-me-button" style="color:red">حذف برای من</button>
-</div>
-${serverReply}${serverFile}${serverText}
-<div class="message-info">
-<span class="message-time">${escapeHtml(data.time||getTime())}</span>
-<span class="message-status" id="status-${data.message_id}">✓</span>
-</div>`;
-
-const btn=tempMessage.querySelector(".message-menu-btn");
-btn.onclick=e=>{e.stopPropagation();toggleMenu(btn)};
-
-tempMessage.querySelector(".reply-button").onclick=()=>{
-replyToMessage(data.message_id,data.content||"فایل");
+const messageData={
+message_id:data.message_id,
+content:data.content??text,
+message:data.content??text,
+time:data.time||getTime(),
+status:data.status||"sent",
+file_url:data.file_url||null,
+file_name:data.file_name||"",
+reply_to:data.reply_to||(
+replyId
+?{
+id:replyId,
+message:replyMsg||"فایل"
+}
+:null
+)
 };
 
-tempMessage.querySelector(".delete-for-me-button").onclick=()=>{
+tempMessage.innerHTML=
+createMessageHtml(
+messageData,
+"sent"
+);
+
+const replyBtn=
+tempMessage.querySelector(".reply-button");
+
+const deleteBtn=
+tempMessage.querySelector(".delete-for-me-button");
+
+replyBtn?.addEventListener("click",e=>{
+e.stopPropagation();
+
+replyToMessage(
+data.message_id,
+messageData.content||"فایل"
+);
+
+closeAllMenus();
+});
+
+deleteBtn?.addEventListener("click",e=>{
+e.stopPropagation();
+
 deleteForMe(data.message_id);
-};
+closeAllMenus();
+});
 
+
+/*
+منوی پیام ارسال‌شده
+*/
+const menuBtn=
+tempMessage.querySelector(".message-menu-btn");
+
+menuBtn?.addEventListener("click",e=>{
+e.stopPropagation();
+toggleMenu(menuBtn);
+});
+}
+
+
+/*
+پیام ثبت شده.
+WebSocket فقط برای اطلاع‌رسانی وضعیت استفاده می‌شود.
+*/
 if(chatSocket?.readyState===WebSocket.OPEN){
-chatSocket.send(JSON.stringify({message_id:data.message_id}));
-}
+chatSocket.send(JSON.stringify({
+message_id:data.message_id
+}));
 }
 
+
+/*
+پاک کردن فرم
+*/
 form.reset();
 removeSelectedFile();
 cancelReply();
+
 messageInput.style.height="auto";
-document.getElementById("emoji-picker")?.classList.remove("show");
+
+document
+.getElementById("emoji-picker")
+?.classList.remove("show");
+
 scrollBottom();
 
 }catch(err){
+
 console.error("Send:",err);
-const temp=document.getElementById(tempId);
-temp?.querySelector(".message-status")?.replaceChildren(document.createTextNode("❌"));
+
+const temp=
+document.getElementById(tempId);
+
+temp?.querySelector(".message-status")
+?.replaceChildren(
+document.createTextNode("❌")
+);
 }
 });
 
-/* ENTER */
+
+/* ================= ENTER ================= */
+
 messageInput?.addEventListener("keydown",e=>{
 if(e.key==="Enter"&&!e.shiftKey){
 e.preventDefault();
@@ -638,20 +902,29 @@ form.requestSubmit();
 }
 });
 
-/* SEEN */
+
+/* ================= SEEN ================= */
+
 document.addEventListener("visibilitychange",()=>{
-if(!document.hidden)markSeen();
+if(!document.hidden){
+markSeen();
+}
 });
+
 window.addEventListener("focus",markSeen);
 
-/* INIT */
+
+/* ================= INIT ================= */
+
 window.addEventListener("load",()=>{
 scrollBottom();
+
 setTimeout(scrollBottom,100);
 setTimeout(markSeen,500);
 });
 
 connectWebSocket();
 </script>
+
 </body>
 </html>

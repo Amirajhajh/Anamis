@@ -1,234 +1,193 @@
-# accounts/views.py
-from chat.models import Chat,Message, ChatMember
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import get_user_model
-from django.utils import timezone
-from .forms import UserProfileForm
-from django.db.models import OuterRef, Subquery, Max
-import random
-from django.contrib import messages 
-from django.contrib.auth import login, authenticate
-from django.core.mail import send_mail
-from django.conf import settings
 
+from django.contrib import messages
+from django.contrib.auth import authenticate, get_user_model, login
+from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+import random
+
+from django.conf import settings
+from .forms import UserProfileForm
+from chat.models import Chat
 
 User = get_user_model()
 
-# @login_required # اگر نیاز به لاگین دارد
-def chat_detail(request, chat_id): # فرض می‌کنیم chat_id را دریافت می‌کند
-    try:
-        chat = Chat.objects.get(id=chat_id)
-        # می توانید پیام ها یا اطلاعات دیگر چت را هم اینجا بارگذاری کنید
-        # messages = chat.messages.all()
-        context = {'chat': chat}
-        return render(request, 'accounts/chat_detail.html', context) # یا template مناسب
-    except Chat.DoesNotExist:
-        # اگر چت پیدا نشد، صفحه خطا یا لیست چت ها را نشان دهید
-        return render(request, 'accounts/chat_list.html', {'error': 'Chat not found'})
+
+def chat_detail(request, chat_id):
+    chat = get_object_or_404(Chat, id=chat_id)
+    return render(request, "accounts/chat_detail.html", {"chat": chat})
 
 
 @login_required
 def profile_view(request, user_id):
-    # این ویو برای نمایش پروفایل کاربر خاص (مثلا در صفحه چت)
-    try:
-        profile_user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        # اگر کاربر پیدا نشد، می‌تونی به صفحه خطا یا لیست چت‌ها برگردونی
-        return redirect('chat_list') # فرض می‌کنیم همچین URL ای داریم
+    profile_user = get_object_or_404(User, id=user_id)
+    return render(
+        request,
+        "accounts/profile_detail.html",
+        {"profile_user": profile_user},
+    )
 
-    context = {
-        'profile_user': profile_user
-    }
-    return render(request, 'accounts/profile_detail.html', context) # این تمپلیت رو باید بسازیم
 
 @login_required
 def update_profile(request):
     user = request.user
-    if request.method == 'POST':
+
+    if request.method == "POST":
         form = UserProfileForm(request.POST, request.FILES, instance=user)
+
         if form.is_valid():
             form.save()
-            # آپدیت last_seen هنگام ذخیره فرم
             user.last_seen = timezone.now()
-            user.save(update_fields=['last_seen'])
-            return redirect('profile_detail_current') # یک URL برای نمایش پروفایل کاربر جاری
+            user.save(update_fields=["last_seen"])
+            return redirect("profile_detail_current")
     else:
         form = UserProfileForm(instance=user)
 
-    context = {
-        'form': form
-    }
-    return render(request, 'accounts/update_profile.html', context) # این تمپلیت رو باید بسازیم
+    return render(request, "accounts/update_profile.html", {"form": form})
+
 
 @login_required
 def profile_detail_current(request):
-    # این ویو برای نمایش پروفایل کاربر لاگین شده (مثلا در صفحه پروفایل خود کاربر)
     user = request.user
-    # آپدیت last_seen در هر بازدید از پروفایل خود کاربر
     user.last_seen = timezone.now()
-    user.online_status = True # فرض می‌کنیم اگر صفحه پروفایل رو باز کرده آنلاینه
-    user.save(update_fields=['last_seen', 'online_status'])
+    user.online_status = True
+    user.save(update_fields=["last_seen", "online_status"])
 
-    context = {
-        'profile_user': user
-    }
-    return render(request, 'accounts/profile_detail.html', context) 
+    return render(
+        request,
+        "accounts/profile_detail.html",
+        {"profile_user": user},
+    )
+
 
 def register_step1(request):
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        
-        # --- دیباگ برای Render ---
-        print(f"DEBUG: Register Step 1 POST received. Email: {email}", flush=True)
-        
-        if not email:
-            print("DEBUG: Email is empty!", flush=True)
-            messages.error(request, 'لطفاً ایمیل خود را وارد کنید.')
-            return redirect('register_step1')
+    if request.method == "POST":
+        email = request.POST.get("email")
 
-        print("DEBUG: Checking if user exists...", flush=True)
+        if not email:
+            messages.error(request, "Please enter your email.")
+            return redirect("register_step1")
+
         if User.objects.filter(email=email).exists():
-            print(f"DEBUG: User with email {email} already exists.", flush=True)
-            messages.error(request, 'این ایمیل قبلاً ثبت نام شده است.')
-            return redirect('register_step1')
+            messages.error(request, "This email is already registered.")
+            return redirect("register_step1")
 
         otp_code = str(random.randint(100000, 999999))
 
         try:
-            print(f"DEBUG: Attempting to send email with code: {otp_code}", flush=True)
             send_mail(
-                'کد تایید ثبت نام',
-                f'کد تایید شما است: {otp_code}',
+                "Registration Verification Code",
+                f"Your verification code is: {otp_code}",
                 settings.DEFAULT_FROM_EMAIL,
                 [email],
                 fail_silently=False,
             )
-            
-            # ذخیره در سشن
-            request.session['otp_email'] = email
-            request.session['otp_code'] = otp_code
-            request.session.modified = True # بسیار مهم
-            
-            print(f"DEBUG: Email sent successfully. Redirecting to step 2. Session email: {request.session.get('otp_email')}", flush=True)
-            return redirect('register_step2')
 
-        except Exception as e:
-            print(f"DEBUG: EXCEPTION CAUGHT: {str(e)}", flush=True)
-            messages.error(request, f'خطا در ارسال ایمیل: {e}')
-            return redirect('register_step1')
+            request.session["otp_email"] = email
+            request.session["otp_code"] = otp_code
+            request.session.modified = True
 
-    return render(request, 'accounts/register_step1.html')
+            return redirect("register_step2")
+
+        except Exception:
+            messages.error(
+                request,
+                "Failed to send the verification email. Please try again.",
+            )
+            return redirect("register_step1")
+
+    return render(request, "accounts/register_step1.html")
 
 
 def register_step2(request):
-    if request.method == 'POST':
-        entered_code = request.POST.get('code')
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
+    if request.method == "POST":
+        entered_code = request.POST.get("code")
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
 
-        email = request.session.get('otp_email')
-        stored_code = request.session.get('otp_code')
+        email = request.session.get("otp_email")
+        stored_code = request.session.get("otp_code")
 
-        # بررسی وجود کد و ایمیل در سشن
         if not email or not stored_code:
-            messages.error(request, 'کد تأیید منقضی شده است. دوباره ثبت‌نام کنید.')
-            return redirect('register_step1')
+            messages.error(
+                request,
+                "The verification code has expired. Please register again.",
+            )
+            return redirect("register_step1")
 
-        # بررسی کد تأیید
         if entered_code != stored_code:
-            messages.error(request, 'کد تأیید اشتباه است.')
-            return render(request, 'accounts/register_step2.html')
+            messages.error(request, "Invalid verification code.")
+            return render(request, "accounts/register_step2.html")
 
-        # اعتبارسنجی نام کاربری
         if not username:
-            messages.error(request, 'نام کاربری را وارد کنید.')
-            return render(request, 'accounts/register_step2.html')
+            messages.error(request, "Please enter a username.")
+            return render(request, "accounts/register_step2.html")
 
         if User.objects.filter(username=username).exists():
-            messages.error(request, 'این نام کاربری قبلاً انتخاب شده است.')
-            return render(request, 'accounts/register_step2.html')
+            messages.error(request, "This username is already taken.")
+            return render(request, "accounts/register_step2.html")
 
-        # بررسی تکراری نبودن ایمیل
         if User.objects.filter(email=email).exists():
-            messages.error(request, 'این ایمیل قبلاً ثبت شده است.')
-            return render(request, 'accounts/register_step2.html')
+            messages.error(request, "This email is already registered.")
+            return render(request, "accounts/register_step2.html")
 
-        # اعتبارسنجی رمز عبور
         if not password:
-            messages.error(request, 'رمز عبور را وارد کنید.')
-            return render(request, 'accounts/register_step2.html')
+            messages.error(request, "Please enter a password.")
+            return render(request, "accounts/register_step2.html")
 
         if password != confirm_password:
-            messages.error(request, 'رمز عبور و تکرار آن یکسان نیستند.')
-            return render(request, 'accounts/register_step2.html')
+            messages.error(request, "Passwords do not match.")
+            return render(request, "accounts/register_step2.html")
 
-        # ساخت کاربر
         user = User.objects.create_user(
             username=username,
             email=email,
-            password=password
+            password=password,
         )
 
-        # پاک کردن اطلاعات تأیید از سشن
-        request.session.pop('otp_email', None)
-        request.session.pop('otp_code', None)
+        request.session.pop("otp_email", None)
+        request.session.pop("otp_code", None)
 
-        # ورود خودکار
         login(request, user)
 
-        messages.success(request, 'ثبت‌نام با موفقیت انجام شد.')
-        return redirect('chat:chat_list')
+        messages.success(request, "Registration completed successfully.")
+        return redirect("chat:chat_list")
 
-    return render(request, 'accounts/register_step2.html')
+    return render(request, "accounts/register_step2.html")
+
 
 def register_direct_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
-        # اگر فیلد نام کامل یا عکس پروفایل دارید، آن‌ها را هم اینجا دریافت کنید
-        # full_name = request.POST.get('full_name') 
-        # profile_picture = request.FILES.get('profile_picture') # برای فایل
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        confirm_password = request.POST.get("confirm_password")
 
-        # اعتبارسنجی نام کاربری
         if not username:
-            messages.error(request, 'نام کاربری را وارد کنید.')
-            # در صورت خطا، به همان صفحه ثبت نام برمی‌گردیم
-            return render(request, 'accounts/register_account.html') 
+            messages.error(request, "Please enter a username.")
+            return render(request, "accounts/register_account.html")
 
         if User.objects.filter(username=username).exists():
-            messages.error(request, 'این نام کاربری قبلاً انتخاب شده است.')
-            return render(request, 'accounts/register_account.html')
+            messages.error(request, "This username is already taken.")
+            return render(request, "accounts/register_account.html")
 
-        # اعتبارسنجی رمز عبور
         if not password:
-            messages.error(request, 'رمز عبور را وارد کنید.')
-            return render(request, 'accounts/register_account.html')
+            messages.error(request, "Please enter a password.")
+            return render(request, "accounts/register_account.html")
 
         if password != confirm_password:
-            messages.error(request, 'رمز عبور و تکرار آن یکسان نیستند.')
-            return render(request, 'accounts/register_account.html')
+            messages.error(request, "Passwords do not match.")
+            return render(request, "accounts/register_account.html")
 
-        # ایجاد کاربر جدید
-        # اگر فقط نام کاربری و رمز عبور دارید:
         user = User.objects.create_user(
             username=username,
-            password=password
+            password=password,
         )
-        
-        # اگر فیلدهای اضافی مانند نام کامل دارید (نیاز به مدل پروفایل دارد):
-        # user = User.objects.create_user(username=username, password=password)
-        # profile = UserProfile.objects.create(user=user, full_name=full_name, profile_picture=profile_picture)
-        # توجه: برای استفاده از UserProfile، باید آن را تعریف و در settings.py تنظیم کرده باشید.
 
-        # ورود خودکار کاربر پس از ثبت نام موفق
         login(request, user)
 
-        messages.success(request, 'ثبت‌نام شما با موفقیت انجام شد!')
-        # هدایت به صفحه اصلی یا لیست چت‌ها
-        return redirect('chat:chat_list') # یا هر URL دیگری که می‌خواهید
+        messages.success(request, "Registration completed successfully.")
+        return redirect("chat:chat_list")
 
-    # اگر متد GET بود، صفحه ثبت نام را نمایش بده
-    return render(request, 'accounts/register_account.html')
+    return render(request, "accounts/register_account.html")
