@@ -9,17 +9,14 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-default-key-change-me")
-DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
-ALLOWED_HOSTS = os.getenv(
-    "DJANGO_ALLOWED_HOSTS",
-    "anamischat-j80p.onrender.com,localhost,127.0.0.1",
-).split(",")
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key-change-me')
+DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = os.getenv('https://anamischat-j80p.onrender.com', 'localhost,127.0.0.1').split(',')
 
-CSRF_TRUSTED_ORIGINS = os.getenv(
-    "CSRF_TRUSTED_ORIGINS",
-    "https://anamischat-j80p.onrender.com",
-).split(",")
+
+CSRF_TRUSTED_ORIGINS = ['https://anamischat-j80p.onrender.com']
+
+
 
 # Applications
 INSTALLED_APPS = [
